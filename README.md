@@ -41,3 +41,4 @@ For example, IIIT-Delhi’s own [erp.iiitd.edu.in](https://erp.iiitd.edu.in)
 ## Python Packages Required
 > pip install flask-mysql
 > pip install cryptography
+> pip install mysqlclient
