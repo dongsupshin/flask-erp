@@ -37,3 +37,6 @@ For example, IIIT-Delhi’s own [erp.iiitd.edu.in](https://erp.iiitd.edu.in)
 	* User requests for supplies
 	* Supplies visible to the Administrator
 	* Download requests in CSV format
+	
+## Python Packages Required
+> pip install flask-mysql
