@@ -44,8 +44,8 @@ def signup():
 		if data is not None:
 			msg = "username already exists <br />"
 		flag = 0
-		flag = cursor.execute("INSERT INTO user VALUES('"+username+"','"+password+"','user')")
-		flag = cursor.execute("INSERT INTO profile VALUES('"+username+"','"+name+"','"+dob+"','"+sex+"','"+email+"','"+address+"','"+number+"')")
+		flag = cursor.execute("INSERT INTO user (username,password,type) VALUES('"+username+"','"+password+"','user')")
+		flag = cursor.execute("INSERT INTO profile (username,name,dob,sex,email,address,number) VALUES('"+username+"','"+name+"','"+dob+"','"+sex+"','"+email+"','"+address+"','"+number+"')")
 		conn.commit()
 		if flag == 0:
 			msg = "wrong inputs, try again. <br />"
@@ -145,7 +145,7 @@ def changesettings():
 	conn = mysql.connect()
 	cursor = conn.cursor()
 	msg = " "
-	if username is not "" and username is not None:
+	if username != "" and username is not None:
 		if username == session['username']:
 			msg = msg + "<br /> Same Username "
 		else:
@@ -162,7 +162,7 @@ def changesettings():
 				msg = msg + "<br />username already exists"
 	else:
 		msg = msg + "<br /> username is none"
-	if password is not "" and password is not None:
+	if password != "" and password is not None:
 		cursor.execute("SELECT password FROM user WHERE username = \"" + username + "\"")
 		data = cursor.fetchone()
 		if password == data:
@@ -171,7 +171,7 @@ def changesettings():
 			cursor.execute("UPDATE user SET password = \"" + password + "\" WHERE username = \"" + session['username'] + "\"" )
 			conn.commit()
 	msg = msg + "<br /> Password changed."
-	if newAdmin is not "" and newAdmin is not None:
+	if newAdmin != "" and newAdmin is not None:
 		cursor.execute("SELECT type FROM user WHERE username = \"" + str(newAdmin) + "\"")
 		data = cursor.fetchone()
 		if data[0] == "admin":
