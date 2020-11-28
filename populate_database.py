@@ -48,7 +48,7 @@ session.add(facility1)
 session.commit()
 
 # Create dummy product
-product1 = ProductMaster(id="prod_1", name="prod-1")
+product1 = ProductMaster(id="AAA", name="AAA")
 session.add(product1)
 session.commit()
 
@@ -64,6 +64,8 @@ session.commit()
 itemstock1 = ItemStockMaster(item=item1, stock=100)
 session.add(itemstock1)
 session.commit()
+
+print('populate_database.py success')
 
 
 

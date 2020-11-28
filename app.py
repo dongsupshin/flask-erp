@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, session, abort
 from flaskext.mysql import MySQL
-
+from sqlalchemy.orm import sessionmaker
+from database_setup import Base, engine, User, Profile, FacilityMaster, ProductMaster, ProductStockMaster, ItemMaster, ItemStockMaster
 import os
 
 mysql = MySQL()
@@ -11,6 +12,11 @@ app.config['MYSQL_DATABASE_PASSWORD'] = 'justanothersecret'
 app.config['MYSQL_DATABASE_DB'] = 'erp'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
+
+# Connect to Database and create database session
+Base.metadata.bind = engine
+DBSession = sessionmaker(bind=engine)
+alchemy_session = DBSession()
 
 @app.route('/')
 def index():
@@ -85,6 +91,22 @@ def users():
 	cursor.execute("SELECT username FROM user WHERE EXISTS(SELECT * FROM user WHERE type = \"admin\")")
 	data = cursor.fetchall()
 	return render_template("users.html",data=data)
+
+@app.route('/products')
+def products():
+	if 'username' not in session:
+		return redirect('/')
+
+	data = alchemy_session.query(ProductMaster).all()
+	return render_template("products.html",data=data)
+
+@app.route('/items')
+def items():
+	if 'username' not in session:
+		return redirect('/')
+	
+	data = alchemy_session.query(ItemMaster).all()
+	return render_template("items.html",data=data)
 
 @app.route('/profiles')
 def profiles():

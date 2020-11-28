@@ -138,6 +138,6 @@ class RecipeMaster(Base):
 
 engine = create_engine('mysql://dbms:justanothersecret@localhost/erp?charset=utf8', convert_unicode=False)
 
-Base.metadata.drop_all(bind=engine)
+# Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(engine)
 print('database_setup.py success')
