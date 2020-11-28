@@ -20,6 +20,17 @@ DBSession = sessionmaker(bind=engine)
 # session.rollback()
 session = DBSession()
 
+# INSERT INTO `erp`.`user` (`username`,`password`,`type`) VALUES ('Admin', 'Admin','admin')	
+# INSERT INTO `erp`.`profile` (`username`,`name`,`dob`,`sex`,`email`,`address`,`number`) VALUES ('Admin','Administrator God', '2017-04-15', 'Male', 'gurek15033@iiitd.ac.in','IIIT-Delhi, Okhla Estate III', '9910004979')
+
+# Create dummy admin
+admin = User(username="Admin", password="Admin", type='admin')
+session.add(admin)
+session.commit()
+
+adminprofile = Profile(user=admin, username=admin.username,name=admin.username,sex='Male')
+session.add(adminprofile)
+session.commit()
 
 # Create dummy user
 User1 = User(username="Robo Barista", password="1234", type='user')
