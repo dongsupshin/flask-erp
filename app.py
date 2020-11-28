@@ -86,6 +86,22 @@ def users():
 	data = cursor.fetchall()
 	return render_template("users.html",data=data)
 
+@app.route('/profiles')
+def profiles():
+	if 'username' not in session:
+		return redirect('/')
+	cursor = mysql.connect().cursor()
+	cursor.execute("SELECT type FROM user where username='" + session['username'] + "'")
+	data = cursor.fetchone()
+	if "admin" not in data:
+		return "you don't have access to this cause you're not an admin."
+	conn = mysql.connect()
+	cursor = conn.cursor()
+	# cursor.execute("SELECT username FROM user WHERE EXISTS(SELECT * FROM user WHERE type = \"admin\")")
+	cursor.execute("SELECT * FROM erp.profile")
+	data = cursor.fetchall()
+	return render_template("profiles.html",data=data)
+
 @app.route('/logout')
 def logout():
 	if 'username' not in session:

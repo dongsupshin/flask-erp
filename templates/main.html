@@ -27,7 +27,7 @@
 				<div id="navbar" class="navbar-collapse collapse">
 					<ul class="nav navbar-nav navbar-right">
 						<li><a href="/dashboard">Dashboard</a></li>
-						<li><a href="/profile">Profile</a></li>
+						<li><a href="/profiles">Profiles</a></li>
 						<li><a href="/settings">Settings</a></li>
 						<li><a href="/help">Help</a></li>
 						<li><a href="/logout">Logout</a></li>
@@ -46,6 +46,7 @@
 						{% if session['type']|string() == "admin" %}
 						<li><a href="/admin/users">Users</a></li>
 						{% endif %}
+						<li><a href="/profiles">profiles</a></li>
 						<li><a href="/settings">Settings</a></li>
 						<li><a href="/help">Help</a></li>
 						<li><a href="/logout">Logout</a></li>
