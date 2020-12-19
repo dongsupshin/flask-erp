@@ -125,11 +125,14 @@ class RecipeMaster(Base):
     
     id = Column(Integer, Sequence(__tablename__ + '_seq'), primary_key=True)
     name = Column(String(256), nullable=False)
+    detail = Column(String(1024), nullable=True)
 
-    # source_items
     # target_product
+    product = relationship(ProductMaster)
+    product_id = Column(String(256), ForeignKey('product_master.id'))
 
-    detail = Column(String(1024), nullable=False)
+    # required_items_to_create_product
+    item_list_in_json = Column(String(1024), nullable=True) # ['item1_id':3]
 
     time_created = Column(DateTime(timezone=True), server_default=func.now())
     time_updated = Column(DateTime(timezone=True), onupdate=func.now())

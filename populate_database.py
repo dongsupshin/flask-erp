@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from database_setup import Base, User, Profile, FacilityMaster, ProductMaster, ProductStockMaster, ItemMaster, ItemStockMaster
+from database_setup import Base, User, Profile, FacilityMaster, ProductMaster, ProductStockMaster, ItemMaster, ItemStockMaster, RecipeMaster
 
 engine = create_engine('mysql://dbms:justanothersecret@localhost/erp?charset=utf8', convert_unicode=False)
 # Bind the engine to the metadata of the Base class so that the
@@ -43,12 +43,12 @@ session.add(Profile1)
 session.commit()
 
 # Create dummy facility
-facility1 = FacilityMaster(id="fac_1", name="A-1")
+facility1 = FacilityMaster(id="fac_1", name="fac_1")
 session.add(facility1)
 session.commit()
 
 # Create dummy product
-product1 = ProductMaster(id="AAA", name="AAA")
+product1 = ProductMaster(id="prod_1", name="prod_1")
 session.add(product1)
 session.commit()
 
@@ -56,8 +56,12 @@ productstock1 = ProductStockMaster(product=product1, stock=100)
 session.add(productstock1)
 session.commit()
 
+recipe1 = RecipeMaster(name="recipe_prod_1", product=product1)
+session.add(recipe1)
+session.commit()
+
 # Create dummy item
-item1 = ItemMaster(id="item_1", name="item-1")
+item1 = ItemMaster(id="item_1", name="item_1")
 session.add(item1)
 session.commit()
 

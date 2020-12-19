@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, session, abort
 from flaskext.mysql import MySQL
 from sqlalchemy.orm import sessionmaker
-from database_setup import Base, engine, User, Profile, FacilityMaster, ProductMaster, ProductStockMaster, ItemMaster, ItemStockMaster
+from database_setup import Base, engine, User, Profile, FacilityMaster, ProductMaster, ProductStockMaster, ItemMaster, ItemStockMaster, RecipeMaster
 import os
 
 mysql = MySQL()
@@ -147,6 +147,27 @@ def settings():
 	else:
 		alert = None
 	return render_template('settings.html', data=data, alert=alert)
+
+@app.route('/addproduct')
+def addproduct():
+	if 'username' not in session:
+		return redirect('/')
+	cursor = mysql.connect().cursor()
+	cursor.execute("SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session['username'] + "\" and user.username = profile.username")
+	data = cursor.fetchone()
+	if data is None:
+		return abort(404)
+	if 'alerts' in session:
+		alert = session['alerts']
+		session.pop('alerts')
+	else:
+		alert = None
+	
+	products = alchemy_session.query(ProductMaster).all()
+	users = alchemy_session.query(User).all()
+	recipes = alchemy_session.query(RecipeMaster).all()
+	facilities = alchemy_session.query(FacilityMaster).all()
+	return render_template('addproduct.html', data=data, alert=alert, products=products, users=users, recipes=recipes, facilities=facilities)
 
 @app.route('/dashboard')
 def dashboard():
