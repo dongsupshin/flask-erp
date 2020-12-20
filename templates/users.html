@@ -4,10 +4,26 @@
 	<br />
 	<h1 class="page-header">List of users</h1>
 	<hr style="border-color: black;">
-	<ol>
-	{% for i in data%}
-		<li>{{i}}</li>
-	{% endfor %}
-	</ol>
+	<div class="table-responsive">
+		<table class="table table-striped">
+			<thead>
+				<tr>
+					<th>id</th>
+					<th>type</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for i in data%}
+				<tr>
+					<!-- username -->
+					<td>{{i[0]}}</td>
+					<!-- type -->
+					<td>{{i[1]}}</td>
+				</tr>
+				{% endfor %}
+
+			</tbody>
+		</table>
+	</div>
 </div>
 {% endblock %}

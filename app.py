@@ -88,7 +88,7 @@ def users():
 		return "you don't have access to this cause you're not an admin."
 	conn = mysql.connect()
 	cursor = conn.cursor()
-	cursor.execute("SELECT username FROM user WHERE EXISTS(SELECT * FROM user WHERE type = \"admin\")")
+	cursor.execute("SELECT username, type FROM user WHERE EXISTS(SELECT * FROM user WHERE type = \"admin\")")
 	data = cursor.fetchall()
 	return render_template("users.html",data=data)
 
@@ -96,17 +96,39 @@ def users():
 def products():
 	if 'username' not in session:
 		return redirect('/')
+	
+	cursor = mysql.connect().cursor()
+	cursor.execute("SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session['username'] + "\" and user.username = profile.username")
+	data = cursor.fetchone()
+	if data is None:
+		return abort(404)
+	if 'alerts' in session:
+		alert = session['alerts']
+		session.pop('alerts')
+	else:
+		alert = None
 
-	data = alchemy_session.query(ProductMaster).all()
-	return render_template("products.html",data=data)
+	products = alchemy_session.query(ProductMaster).all()
+	return render_template("products.html",data=data,alert=alert,products=products)
 
 @app.route('/items')
 def items():
 	if 'username' not in session:
 		return redirect('/')
 	
-	data = alchemy_session.query(ItemMaster).all()
-	return render_template("items.html",data=data)
+	cursor = mysql.connect().cursor()
+	cursor.execute("SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session['username'] + "\" and user.username = profile.username")
+	data = cursor.fetchone()
+	if data is None:
+		return abort(404)
+	if 'alerts' in session:
+		alert = session['alerts']
+		session.pop('alerts')
+	else:
+		alert = None
+	
+	items = alchemy_session.query(ItemMaster).all()
+	return render_template("items.html",data=data, items=items, alert=alert)
 
 @app.route('/profiles')
 def profiles():

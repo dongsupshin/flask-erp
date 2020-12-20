@@ -11,67 +11,78 @@
 	<link rel="stylesheet" href="{{ url_for('static',filename='css/style.css') }}">
 	<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 </head>
-	<body>
+<body>
 
-		<nav class="navbar navbar-inverse navbar-fixed-top">
-			<div class="container-fluid">
-				<div class="navbar-header">
-					<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-						<span class="sr-only">Toggle navigation</span>
-						<span class="icon-bar"></span>
-						<span class="icon-bar"></span>
-						<span class="icon-bar"></span>
-					</button>
-					<a class="navbar-brand" href="/">Flask-ERP</a>
-				</div>
-				<div id="navbar" class="navbar-collapse collapse">
-					<ul class="nav navbar-nav navbar-right">
-						<li><a href="/dashboard">Dashboard</a></li>
-						<li><a href="/profiles">Profiles</a></li>
-						<li><a href="/settings">Settings</a></li>
-						<li><a href="/products">Products</a></li>
-						<li><a href="/addproduct">Add Product</a></li>
-						<li><a href="/showproductstatus">Show Product Status</a></li>
-						<li><a href="/items">Items</a></li>
-						<li><a href="/help">Help</a></li>
-						<li><a href="/logout">Logout</a></li>
-					</ul>
-				</div>
-			</div>
-		</nav>
-
+	<nav class="navbar navbar-inverse navbar-fixed-top">
 		<div class="container-fluid">
-			<div class="row">
-				<div class="col-sm-3 col-md-2 sidebar">
-					<h3>Hi, {{data[0]}}</h3>
-					<h4>Account type: {{ session['type'] }}</h4><br />
-					<ul class="nav nav-sidebar">
-						<li class="active"><a href="#">Overview <span class="sr-only">(current)</span></a></li>
-						{% if session['type']|string() == "admin" %}
-						<li><a href="/admin/users">Users</a></li>
-						{% endif %}
-						<li><a href="/profiles">profiles</a></li>
-						<li><a href="/settings">Settings</a></li>
-						<li><a href="/products">Products</a></li>
-						<li><a href="/addproduct">Add Product</a></li>
-						<li><a href="/showproductstatus">Show Product Status</a></li>
-						<li><a href="/items">Items</a></li>
-						<li><a href="/help">Help</a></li>
-						<li><a href="/logout">Logout</a></li>
-					</ul>
-				
-					Created for <a href="https://www.usebackpack.com/iiitd/w2017/cse202/" target="_blank">CSE202-Fundamentals of Database Systems</a> Course</li> 
-					by <a href="https://github.com/gureks">Gurek Singh</a> and <a href="">Azhar Tak</a>
-				</div>
-				{% block content %}
-				{% endblock %}
+			<div class="navbar-header">
+				<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+					<span class="sr-only">Toggle navigation</span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+				<a class="navbar-brand" href="/">Flask-ERP</a>
+			</div>
+			<div id="navbar" class="navbar-collapse collapse">
+				<ul class="nav navbar-nav navbar-right">
+					<li><a href="/dashboard">Dashboard</a></li>
+					<li><a href="/profiles">Profiles</a></li>
+					<li><a href="/settings">Settings</a></li>
+					<li><a href="/products">Products</a></li>
+					<li><a href="/addproduct">Add Product</a></li>
+					<li><a href="/showproductstatus">Show Product Status</a></li>
+					<li><a href="/items">Items</a></li>
+					<li><a href="/help">Help</a></li>
+					<li><a href="/logout">Logout</a></li>
+				</ul>
 			</div>
 		</div>
+	</nav>
 
-		<!-- Bootstrap core JavaScript
-		================================================== -->
-		<!-- Placed at the end of the document so the pages load faster -->
-		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-		<script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
-	</body>
+	<div class="container-fluid">
+		<div class="row">
+			<div class="col-sm-3 col-md-2 sidebar">
+				<h3>Hi, {{data[0]}}</h3>
+				<h4>Account type: {{ session['type'] }}</h4><br />
+				<ul class="nav nav-sidebar">
+					<li class="active"><a href="#">Overview <span class="sr-only">(current)</span></a></li>
+					{% if session['type']|string() == "admin" %}
+					<li><a href="/admin/users">Users</a></li>
+					{% endif %}
+					<li ><a href="/profiles">profiles</a></li>
+					<li><a href="/settings">Settings</a></li>
+					<li><a href="/products">Products</a></li>
+					<li><a href="/addproduct">Add Product</a></li>
+					<li><a href="/showproductstatus">Show Product Status</a></li>
+					<li><a href="/items">Items</a></li>
+					<li><a href="/help">Help</a></li>
+					<li><a href="/logout">Logout</a></li>
+				</ul>
+			
+				Created for <a href="https://www.usebackpack.com/iiitd/w2017/cse202/" target="_blank">CSE202-Fundamentals of Database Systems</a> Course</li> 
+				by <a href="https://github.com/gureks">Gurek Singh</a> and <a href="">Azhar Tak</a>
+			</div>
+			{% block content %}
+			{% endblock %}
+		</div>
+	</div>
+
+	<!-- Bootstrap core JavaScript
+	================================================== -->
+	<!-- Placed at the end of the document so the pages load faster -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+	<script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+
+	<!-- [TBD] active class gets referesh -->
+	<script>
+		$('.nav li').click(function(e) {
+			console.log(e.currentTarget,"//",e.target,"//",this);
+			e.stopPropagation();
+			$('.nav li').removeClass('active');
+			$(this).addClass('active');
+		});
+	</script>		
+	
+</body>
 </html>

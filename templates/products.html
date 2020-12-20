@@ -4,10 +4,24 @@
 	<br />
 	<h1 class="page-header">List of Products</h1>
 	<hr style="border-color: black;">
-	<ol>
-	{% for i in data%}
-		<li>{{i.name}}</li>
-	{% endfor %}
-	</ol>
+	<div class="table-responsive">
+		<table class="table table-striped">
+			<thead>
+				<tr>
+					<th>id</th>
+					<th>name</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for i in products%}
+				<tr>
+					<td>{{i.id}}</td>
+					<td>{{i.name}}</td>
+				</tr>
+				{% endfor %}
+
+			</tbody>
+		</table>
+	</div>
 </div>
 {% endblock %}

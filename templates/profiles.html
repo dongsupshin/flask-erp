@@ -4,10 +4,35 @@
 	<br />
 	<h1 class="page-header">List of profiles</h1>
 	<hr style="border-color: black;">
-	<ol>
-	{% for i in data%}
-		<li>{{i}}</li>
-	{% endfor %}
-	</ol>
+	<div class="table-responsive">
+		<table class="table table-striped">
+			<thead>
+				<tr>
+					<th>id</th>
+					<th>username</th>
+					<th>name</th>
+					<th>dob</th>
+					<th>sex</th>
+					<th>email</th>
+					<th>address</th>
+					<th>number</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for i in data%}
+				<tr>
+					<td>{{i[0]}}</td>
+					<td>{{i[1]}}</td>
+					<td>{{i[2]}}</td>
+					<td>{{i[3]}}</td>
+					<td>{{i[4]}}</td>
+					<td>{{i[5]}}</td>
+					<td>{{i[6]}}</td>
+					<td>{{i[7]}}</td>
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
 </div>
 {% endblock %}
