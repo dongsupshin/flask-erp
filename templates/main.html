@@ -46,7 +46,7 @@
 				<h3>Hi, {{data[0]}}</h3>
 				<h4>Account type: {{ session['type'] }}</h4><br />
 				<ul class="nav nav-sidebar">
-					<li class="active"><a href="#">Overview <span class="sr-only">(current)</span></a></li>
+					<li class="active"><a href="/">Overview <span class="sr-only">(current)</span></a></li>
 					{% if session['type']|string() == "admin" %}
 					<li><a href="/admin/users">Users</a></li>
 					{% endif %}
@@ -78,11 +78,25 @@
 	<script>
 		$('.nav li').click(function(e) {
 			console.log(e.currentTarget,"//",e.target,"//",this);
+			// localStorage.setItem('activeTab', $(e.target).attr('href'));
+
 			e.stopPropagation();
 			$('.nav li').removeClass('active');
 			$(this).addClass('active');
 		});
-	</script>		
+	</script>
+
+	<script>
+		$(document).ready(function(){
+			$('a[data-toggle="tab"]').on('show.bs.tab', function(e) {
+				localStorage.setItem('activeTab', $(e.target).attr('href'));
+			});
+			var activeTab = localStorage.getItem('activeTab');
+			if(activeTab){
+				$('#myTab a[href="' + activeTab + '"]').tab('show');
+			}
+		});
+	</script>
 	
 </body>
 </html>

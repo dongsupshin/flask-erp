@@ -1,0 +1,51 @@
+{% extends "main.html" %}
+{% block content %}
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+	<br />
+	<h1 class="page-header">Show Product Stock</h1>
+	<hr style="border-color: black;">
+	{% if alert %}
+	<div class="alert alert-info alert-dismissible" role="alert">
+		<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+		<strong>Heads, up!</strong> {{ alert }}
+	</div>
+	{% endif %}
+	<div class="row">
+
+		<!-- <h2 class="sub-header">Section title</h2> -->
+		<div class="table-responsive">
+			<table class="table table-striped">
+				<thead>
+					<tr>
+						<th>id</th>
+						<th>product_id</th>
+						<th>created_date</th>
+						<th>target_quantity</th>
+						<th>quantity</th>
+						<th>person_in_charge</th>
+						<th>facility_id</th>
+						<th>status</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for productstatus in productstatuses%}
+					<tr>
+						<td>{{productstatus.id}}</td>
+						<td>{{productstatus.product_id}}</td>
+						<td>{{productstatus.created_date}}</td>
+						<td>{{productstatus.target_quantity}}</td>
+						<td>{{productstatus.quantity}}</td>
+						<td>{{productstatus.person_in_charge}}</td>
+						<td>{{productstatus.facility_id}}</td>
+						<td>{{productstatus.status}}</td>
+					</tr>
+					{% endfor %}
+
+				</tbody>
+			</table>
+		</div>
+	
+	</div>
+
+</div>
+{% endblock %}
