@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, session, abort
 from flaskext.mysql import MySQL
 from sqlalchemy.orm import sessionmaker
-from database_setup import Base, engine, User, Profile, FacilityMaster, ProductMaster, ProductStockMaster, ItemMaster, ItemStockMaster, RecipeMaster
+from database_setup import Base, engine, User, Profile, FacilityMaster, ProductMaster, ProductStockMaster, ItemMaster, ItemStockMaster, RecipeMaster, ProductStatusMaster
 import os
 
 mysql = MySQL()
@@ -148,26 +148,78 @@ def settings():
 		alert = None
 	return render_template('settings.html', data=data, alert=alert)
 
-@app.route('/addproduct')
+@app.route('/addproduct', methods=['GET','POST'])
 def addproduct():
 	if 'username' not in session:
 		return redirect('/')
+	
+	if request.method == "POST":
+		# for key in request.form:
+		# 	print(key)
+		
+		in_product = request.form.get('products')
+		in_user = request.form.get('users')
+		in_recipes = request.form.get('recipes')
+		in_targetquantity = request.form.get('targetquantity')
+		in_unit = request.form.get('unit')
+		in_facilities = request.form.get('facilities')
+		in_createddatetime = request.form.get('in_createddatetime')
+		print(in_createddatetime)
+
+		import datetime
+		date_time_obj = datetime.datetime.strptime(in_createddatetime, '%Y-%m-%dT%H:%M')
+		print('Date-time:', date_time_obj)
+
+		product = alchemy_session.query(ProductMaster).filter_by(id=in_product).one()
+		user = alchemy_session.query(User).filter_by(username=in_user).one()
+		facility = alchemy_session.query(FacilityMaster).filter_by(id=in_facilities).one()
+		newproductstats = ProductStatusMaster(product=product, status="OnGoing", created_date=date_time_obj, user=user, unit=in_unit, facility=facility, target_quantity=in_targetquantity, quantity=0)
+		alchemy_session.add(newproductstats)
+		alchemy_session.commit()
+		print(newproductstats)
+
+		return redirect('/showproductstatus')
+	else:
+		cursor = mysql.connect().cursor()
+		cursor.execute("SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session['username'] + "\" and user.username = profile.username")
+		data = cursor.fetchone()
+		if data is None:
+			return abort(404)
+		if 'alerts' in session:
+			alert = session['alerts']
+			session.pop('alerts')
+		else:
+			alert = None
+		
+		products = alchemy_session.query(ProductMaster).all()
+		users = alchemy_session.query(User).all()
+		recipes = alchemy_session.query(RecipeMaster).all()
+		facilities = alchemy_session.query(FacilityMaster).all()
+		return render_template('addproduct.html', data=data, alert=alert, products=products, users=users, recipes=recipes, facilities=facilities)
+
+@app.route('/showproductstatus', methods=['GET','POST'])
+def showproductstatus():
+	if 'username' not in session:
+		return redirect('/')
+
 	cursor = mysql.connect().cursor()
 	cursor.execute("SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session['username'] + "\" and user.username = profile.username")
 	data = cursor.fetchone()
-	if data is None:
-		return abort(404)
-	if 'alerts' in session:
-		alert = session['alerts']
-		session.pop('alerts')
-	else:
-		alert = None
 	
-	products = alchemy_session.query(ProductMaster).all()
-	users = alchemy_session.query(User).all()
-	recipes = alchemy_session.query(RecipeMaster).all()
-	facilities = alchemy_session.query(FacilityMaster).all()
-	return render_template('addproduct.html', data=data, alert=alert, products=products, users=users, recipes=recipes, facilities=facilities)
+	if request.method == "GET":
+		if data is None:
+			return abort(404)
+		if 'alerts' in session:
+			alert = session['alerts']
+			session.pop('alerts')
+		else:
+			alert = None
+		
+		productstatuses = alchemy_session.query(ProductStatusMaster).all()
+		return render_template('showproductstatus.html', data=data, alert=alert, productstatuses=productstatuses)
+	else:
+
+		return 'hello world'
 
 @app.route('/dashboard')
 def dashboard():

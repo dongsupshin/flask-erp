@@ -11,7 +11,7 @@
 	</div>
 	{% endif %}
 	<div class="row">
-		<form class="form-signin" action="/changesettings" method="POST">
+		<form class="form-signin" action="/addproduct" method="POST">
 			<h3 class="form-signin-heading" id="center">Select Product</h3>
 			<label for="inputProduct" class="sr-only">Select Product</label>
 			<select name="products" id="inputProduct">
@@ -38,7 +38,7 @@
 
 			<h3 class="form-signin-heading" id="center">Target Quantity (between 1 and 5)</h3>
 			<label for="InputTargetQuantity" class="sr-only">Target Quantity (between 1 and 5)</label>
-			<input type="number" id="InputTargetQuantity" min="1" max="5">
+			<input type="number" id="InputTargetQuantity" name="targetquantity" min="1" max="5">
 
 			<h3 class="form-signin-heading" id="center">Select Unit</h3>
 			<label for="inputUnit" class="sr-only">Select Unit</label>
@@ -57,12 +57,12 @@
 
 			<h3 class="form-signin-heading" id="center">Select Created Datetime</h3>
 			<label for="createddatetime"></label>
-			<input type="datetime-local" id="createddatetime">
+			<input type="datetime-local" id="createddatetime" name="in_createddatetime">
 			<p><strong>Note:</strong> type="datetime-local" is not supported in Firefox, Safari or Internet Explorer 12 (or earlier).</p>
 
 			<br/>
 			<h3 class="form-signin-heading"></h3>
-			<button class="btn btn-lg btn-primary btn-block" type="submit">Save Changes</button>
+			<button class="btn btn-lg btn-primary btn-block" type="submit">Next</button>
 		</form>
 
 	</div>
