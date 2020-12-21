@@ -17,6 +17,12 @@
 						<tr>
 							<th>id</th>
 							<th>product_id</th>
+							<th>target_quantity</th>
+							<th>target_quantity</th>
+							<th>unit</th>
+							<th>person_in_charge</th>
+							<th>facility_id</th>
+							<th>created_date</th>
 							<th>status</th>
 						</tr>
 					</thead>
@@ -24,6 +30,12 @@
 						<tr>
 							<td>{{productstatus.id}}</td>
 							<td>{{productstatus.product_id}}</td>
+							<td>{{productstatus.target_quantity}}</td>
+							<td>{{productstatus.quantity}}</td>
+							<td>{{productstatus.unit}}</td>
+							<td>{{productstatus.person_in_charge}}</td>
+							<td>{{productstatus.facility_id}}</td>
+							<td>{{productstatus.created_date}}</td>
 							<td>{{productstatus.status}}</td>
 						</tr>
 					</tbody>
@@ -34,9 +46,12 @@
 			<br/>
 			<h3 class="form-signin-heading"></h3>
 			<button class="btn btn-lg btn-primary btn-block" type="submit">Update</button>
-		</form>
-		
+		</form>		
 	</div>
-
+	<div class="row">
+			<button type="button" onclick="document.location = '{{ url_for('showproductstatus')}}';">
+					Previous
+			</button>
+	</div>
 </div>
 {% endblock %}
