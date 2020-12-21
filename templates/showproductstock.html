@@ -17,27 +17,15 @@
 			<table class="table table-striped">
 				<thead>
 					<tr>
-						<th>id</th>
 						<th>product_id</th>
-						<th>created_date</th>
-						<th>target_quantity</th>
-						<th>quantity</th>
-						<th>person_in_charge</th>
-						<th>facility_id</th>
-						<th>status</th>
+						<th>stock</th>
 					</tr>
 				</thead>
 				<tbody>
-					{% for productstatus in productstatuses%}
+					{% for productstock in productstocks%}
 					<tr>
-						<td>{{productstatus.id}}</td>
-						<td>{{productstatus.product_id}}</td>
-						<td>{{productstatus.created_date}}</td>
-						<td>{{productstatus.target_quantity}}</td>
-						<td>{{productstatus.quantity}}</td>
-						<td>{{productstatus.person_in_charge}}</td>
-						<td>{{productstatus.facility_id}}</td>
-						<td>{{productstatus.status}}</td>
+						<td>{{productstock.product_id}}</td>
+						<td>{{productstock.stock}}</td>
 					</tr>
 					{% endfor %}
 

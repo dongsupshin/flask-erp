@@ -28,16 +28,17 @@
 					</tr>
 				</thead>
 				<tbody>
+					
 					{% for productstatus in productstatuses%}
-					<tr>
-						<td>{{productstatus.id}}</td>
-						<td>{{productstatus.product_id}}</td>
-						<td>{{productstatus.created_date}}</td>
-						<td>{{productstatus.target_quantity}}</td>
-						<td>{{productstatus.quantity}}</td>
-						<td>{{productstatus.person_in_charge}}</td>
-						<td>{{productstatus.facility_id}}</td>
-						<td>{{productstatus.status}}</td>
+					<tr onclick="document.location = '{{ url_for('updateproductstatus', productstatus_id=productstatus.id)}}';">
+							<td>{{productstatus.id}}</td>
+							<td>{{productstatus.product_id}}</td>
+							<td>{{productstatus.created_date}}</td>
+							<td>{{productstatus.target_quantity}}</td>
+							<td>{{productstatus.quantity}}</td>
+							<td>{{productstatus.person_in_charge}}</td>
+							<td>{{productstatus.facility_id}}</td>
+							<td>{{productstatus.status}}</td>
 					</tr>
 					{% endfor %}
 

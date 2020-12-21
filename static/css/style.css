@@ -38,3 +38,13 @@ body {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
 }
+
+table { width: 50% }
+tbody tr:hover.selected td,
+tbody tr:hover td {
+  background-color: #FFEFC6;
+  cursor: pointer;
+}
+tbody tr.selected td {
+  background-color: #ffd659;
+}

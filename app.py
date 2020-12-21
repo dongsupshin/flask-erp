@@ -243,6 +243,30 @@ def showproductstatus():
 
 		return 'hello world'
 
+@app.route('/updateproductstatus/<int:productstatus_id>/', methods=['GET','POST'])
+def updateproductstatus(productstatus_id):
+	if 'username' not in session:
+		return redirect('/')
+
+	cursor = mysql.connect().cursor()
+	cursor.execute("SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session['username'] + "\" and user.username = profile.username")
+	data = cursor.fetchone()
+	
+	if request.method == "GET":
+		if data is None:
+			return abort(404)
+		if 'alerts' in session:
+			alert = session['alerts']
+			session.pop('alerts')
+		else:
+			alert = None
+		
+		productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
+		return render_template('updateproductstatus.html', data=data, alert=alert, productstatus=productstatus)
+	else:
+		return 'hello world'
+
+
 @app.route('/showproductstock', methods=['GET','POST'])
 def showproductstock():
 	if 'username' not in session:
@@ -261,8 +285,8 @@ def showproductstock():
 		else:
 			alert = None
 		
-		productstatuses = alchemy_session.query(ProductStatusMaster).all()
-		return render_template('showproductstock.html', data=data, alert=alert, productstatuses=productstatuses)
+		productstocks = alchemy_session.query(ProductStockMaster).all()
+		return render_template('showproductstock.html', data=data, alert=alert, productstocks=productstocks)
 	else:
 
 		return 'hello world'
