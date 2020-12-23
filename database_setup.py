@@ -4,6 +4,11 @@ from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
 from sqlalchemy.dialects import mysql
 from sqlalchemy.sql import select, func
+import re, uuid, base64
+
+def uuid_url64():
+    rv = base64.b64encode(uuid.uuid4().bytes).decode('utf-8')
+    return re.sub(r'[\=\+\/]', lambda m: {'+': '-', '/': '_', '=': ''}[m.group(0)], rv)
 
 Base = declarative_base()
 
@@ -137,7 +142,28 @@ class RecipeMaster(Base):
     time_created = Column(DateTime(timezone=True), server_default=func.now())
     time_updated = Column(DateTime(timezone=True), onupdate=func.now())
 
+class ActiveLoginSession(Base):
+    __tablename__ = 'active_login_session'
 
+    id = Column(Integer, primary_key=True)
+    user = relationship(User)
+    username = Column(String(256), ForeignKey('user.username'), nullable=True)
+    token = Column(String(256), nullable=False, unique=True)
+    created_date = Column(DateTime(timezone=True), server_default=func.now())
+    updated_date = Column(DateTime(timezone=True), onupdate=func.now())
+
+class LoginHistory(Base):
+    __tablename__ = 'login_history'
+
+    id = Column(String(256), primary_key=True)
+    user = relationship(User)
+    username = Column(String(256), ForeignKey('user.username'), nullable=True)
+    request_url = Column(String(2048), nullable=False)
+    remote_address = Column(String(1024), nullable=False)
+    error_log = Column(String(1024), nullable=True)
+
+    login_time = Column(DateTime(timezone=True), server_default=func.now())
+    time_created = Column(DateTime(timezone=True), server_default=func.now())
 
 engine = create_engine('mysql://dbms:justanothersecret@localhost/erp?charset=utf8', convert_unicode=False)
 

@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from database_setup import Base, User, Profile, FacilityMaster, ProductMaster, ProductStockMaster, ItemMaster, ItemStockMaster, RecipeMaster
+from database_setup import Base, User, Profile, FacilityMaster, ProductMaster, ProductStockMaster, ItemMaster, ItemStockMaster, RecipeMaster, LoginHistory, uuid_url64, ActiveLoginSession, uuid_url64
 
 engine = create_engine('mysql://dbms:justanothersecret@localhost/erp?charset=utf8', convert_unicode=False)
 # Bind the engine to the metadata of the Base class so that the
@@ -67,6 +67,14 @@ session.commit()
 
 itemstock1 = ItemStockMaster(item=item1, stock=100)
 session.add(itemstock1)
+session.commit()
+
+activeloginsession = ActiveLoginSession(user=User1, token=str(uuid_url64()))
+session.add(activeloginsession)
+session.commit()
+
+loginhistory = LoginHistory(user=User1, request_url='http://localhost:8000/', remote_address='127.0.0.1', id=str(uuid_url64()))
+session.add(loginhistory)
 session.commit()
 
 print('populate_database.py success')

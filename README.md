@@ -42,3 +42,4 @@ For example, IIIT-Delhi’s own [erp.iiitd.edu.in](https://erp.iiitd.edu.in)
 * pip install flask-mysql
 * pip install cryptography
 * pip install mysqlclient
+* pip install sqlalchemy_utils
