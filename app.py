@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, session, abort, url_for, send_from_directory, flash
 from flaskext.mysql import MySQL
+from sqlalchemy import asc, desc
 from sqlalchemy.orm import sessionmaker
 from database_setup import Base, engine, User, Profile, FacilityMaster, ProductMaster, ProductStockMaster, ItemMaster, \
     ItemStockMaster, RecipeMaster, ProductStatusMaster, ActiveLoginSession, uuid_url64, LoginHistory
@@ -73,9 +74,9 @@ def before_request():
         alchemy_session['token'] = activeloginsession.token
     except Exception as e:
         print(str(e))
-        # [TBD]
-        # alchemy_session.rollback()
+        alchemy_session.rollback()
         return
+        # [TBD]
         # error_msg = str(e)
         # if error_msg == 'No row was found for one()':
         #     error_msg = ''
@@ -98,10 +99,10 @@ def before_request():
             alchemy_session.add(active_session_object)
             alchemy_session.commit()
         except Exception as e:
-            # [TBD]
             print(str(e))
-            # alchemy_session.rollback()
+            alchemy_session.rollback()
             return
+            # [TBD]
             # error_msg = '[' + getframeinfo(currentframe()).filename + ':' + getframeinfo(currentframe()).lineno + '] ' + str(e)
             # loginhistory = LoginHistory(id=str(uuid_url64()), request_url=request.url, remote_address=request.remote_addr, error_log=error_msg)
             # alchemy_session.add(loginhistory)
@@ -402,6 +403,26 @@ def filelist():
 
     return render_template("filelist.html", data=data, alert=alert)
 
+@app.route('/loginhistory')
+def loginhistory():
+    if 'username' not in session:
+        return redirect('/')
+
+    cursor = mysql.connect().cursor()
+    cursor.execute(
+        "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
+            'username'] + "\" and user.username = profile.username")
+    data = cursor.fetchone()
+    if data is None:
+        return abort(404)
+    if 'alerts' in session:
+        alert = session['alerts']
+        session.pop('alerts')
+    else:
+        alert = None
+
+    loginhistories = alchemy_session.query(LoginHistory).order_by(desc(LoginHistory.login_time))
+    return render_template("loginhistory.html", data=data, alert=alert, loginhistories=loginhistories)
 
 @app.route('/profiles')
 def profiles():
