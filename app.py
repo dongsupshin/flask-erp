@@ -152,6 +152,12 @@ def index():
 		return redirect('/dashboard')
 	return render_template('index.html')
 
+@app.route('/index_uploader')
+def index_uploader():
+	if 'username' in session:
+		return redirect('/dashboard')
+	return render_template('index_uploader.html')
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
 	if 'username' in session:
@@ -257,6 +263,24 @@ def items():
 	
 	items = alchemy_session.query(ItemMaster).all()
 	return render_template("items.html",data=data, items=items, alert=alert)
+
+@app.route('/filelist')
+def filelist():
+	if 'username' not in session:
+		return redirect('/')
+	
+	cursor = mysql.connect().cursor()
+	cursor.execute("SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session['username'] + "\" and user.username = profile.username")
+	data = cursor.fetchone()
+	if data is None:
+		return abort(404)
+	if 'alerts' in session:
+		alert = session['alerts']
+		session.pop('alerts')
+	else:
+		alert = None
+	
+	return render_template("filelist.html", data=data, alert=alert)
 
 @app.route('/profiles')
 def profiles():
