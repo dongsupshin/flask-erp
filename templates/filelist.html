@@ -1,163 +1,304 @@
-{% extends "main.html" %}
-{% block content %}
-<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-	<br />
-	<h1 class="page-header">List of Files</h1>
-	<hr style="border-color: black;">
-    <br>
-    <blockquote>
-        <p>File Upload widget with multiple file selection, drag&amp;drop support, progress bars, validation and preview images, audio and video for jQuery.<br>
-        Supports cross-domain, chunked and resumable file uploads and client-side image resizing.<br>
-        Works with any server-side platform (PHP, Python, Ruby on Rails, Java, Node.js, Go etc.) that supports standard HTML form file uploads.</p>
-    </blockquote>
-    <br>
-    <!-- The file upload form used as target for the file upload widget -->
-    <form id="fileupload" action="//jquery-file-upload.appspot.com/" method="POST" enctype="multipart/form-data">
-        <!-- Redirect browsers with JavaScript disabled to the origin page -->
-        <noscript><input type="hidden" name="redirect" value="http://blueimp.github.io/jQuery-File-Upload/"></noscript>
-        <!-- The fileupload-buttonbar contains buttons to add/delete files and start/cancel the upload -->
-        <div class="row fileupload-buttonbar">
-            <div class="col-lg-7">
-                <!-- The fileinput-button span is used to style the file input field as button -->
-                <span class="btn btn-success fileinput-button">
-                    <i class="glyphicon glyphicon-plus"></i>
-                    <span>Add files...</span>
-                    <input type="file" name="file" multiple>
-                </span>
-                <button type="submit" class="btn btn-primary start">
-                    <i class="glyphicon glyphicon-upload"></i>
-                    <span>Start upload</span>
-                </button>
-                <button type="reset" class="btn btn-warning cancel">
-                    <i class="glyphicon glyphicon-ban-circle"></i>
-                    <span>Cancel upload</span>
-                </button>
-                <button type="button" class="btn btn-danger delete">
-                    <i class="glyphicon glyphicon-trash"></i>
-                    <span>Delete</span>
-                </button>
-                <input type="checkbox" class="toggle">
-                <!-- The global file processing state -->
-                <span class="fileupload-process"></span>
-            </div>
-            <!-- The global progress state -->
-            <div class="col-lg-5 fileupload-progress fade">
-                <!-- The global progress bar -->
-                <div class="progress progress-striped active" role="progressbar" aria-valuemin="0" aria-valuemax="100">
-                    <div class="progress-bar progress-bar-success" style="width:0%;"></div>
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="author" content="@gureks">
+	<title>Dashboard | Flask-ERP | Gurek - Azhar</title>
+	<link rel="stylesheet" href="{{ url_for('static',filename='css/bootstrap.min.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/dashboard.css') }}">
+	<link rel="stylesheet" href="{{ url_for('static',filename='css/style.css') }}">
+	<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<body>
+
+	<nav class="navbar navbar-inverse navbar-fixed-top">
+		<div class="container-fluid">
+			<div class="navbar-header">
+				<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+					<span class="sr-only">Toggle navigation</span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+				<a class="navbar-brand" href="/">Flask-ERP</a>
+			</div>
+			<div id="navbar" class="navbar-collapse collapse">
+				<ul class="nav navbar-nav navbar-right">
+					<li><a href="/dashboard">Dashboard</a></li>
+					<li><a href="/profiles">Profiles</a></li>
+					<li><a href="/settings">Settings</a></li>
+					<li><a href="/products">Products</a></li>
+					<li><a href="/addproduct">Add Product</a></li>
+					<li><a href="/showproductstatus">Show Product Status</a></li>
+					<li><a href="/showproductstock">Show Product Stock</a></li>
+					<li><a href="/items">Items</a></li>
+					<li><a href="/filelist">File List</a></li>
+					<li><a href="/loginhistory">Login History</a></li>
+					<li><a href="/help">Help</a></li>
+					<li><a href="/logout">Logout</a></li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+	<div class="container-fluid">
+		<div class="row">
+			<div class="col-sm-3 col-md-2 sidebar">
+				<h3>Hi, {{data[0]}}</h3>
+				<h4>Account type: {{ session['type'] }}</h4><br />
+				<ul class="nav nav-sidebar">
+					<li class="active"><a href="/">Overview <span class="sr-only">(current)</span></a></li>
+					{% if session['type']|string() == "admin" %}
+					<li><a href="/admin/users">Users</a></li>
+					{% endif %}
+					<li ><a href="/profiles">profiles</a></li>
+					<li><a href="/settings">Settings</a></li>
+					<li><a href="/products">Products</a></li>
+					<li><a href="/addproduct">Add Product</a></li>
+					<li><a href="/showproductstatus">Show Product Status</a></li>
+					<li><a href="/showproductstock">Show Product Stock</a></li>
+					<li><a href="/items">Items</a></li>
+					<li><a href="/filelist">File List</a></li>
+					<li><a href="/loginhistory">Login History</a></li>
+					<li><a href="/help">Help</a></li>
+					<li><a href="/logout">Logout</a></li>
+				</ul>
+			
+				Created for <a href="https://www.usebackpack.com/iiitd/w2017/cse202/" target="_blank">CSE202-Fundamentals of Database Systems</a> Course</li> 
+				by <a href="https://github.com/gureks">Gurek Singh</a> and <a href="">Azhar Tak</a>
+			</div>
+			
+            <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+                <br />
+                <h1 class="page-header">List of Files</h1>
+                <hr style="border-color: black;">
+                <br>
+                <blockquote>
+                    <p>File Upload widget with multiple file selection, drag&amp;drop support, progress bars, validation and preview images, audio and video for jQuery.<br>
+                    Supports cross-domain, chunked and resumable file uploads and client-side image resizing.<br>
+                    Works with any server-side platform (PHP, Python, Ruby on Rails, Java, Node.js, Go etc.) that supports standard HTML form file uploads.</p>
+                </blockquote>
+                <br>
+                <!-- The file upload form used as target for the file upload widget -->
+                <form id="fileupload" action="//jquery-file-upload.appspot.com/" method="POST" enctype="multipart/form-data">
+                    <!-- Redirect browsers with JavaScript disabled to the origin page -->
+                    <noscript><input type="hidden" name="redirect" value="http://blueimp.github.io/jQuery-File-Upload/"></noscript>
+                    <!-- The fileupload-buttonbar contains buttons to add/delete files and start/cancel the upload -->
+                    <div class="row fileupload-buttonbar">
+                        <div class="col-lg-7">
+                            <!-- The fileinput-button span is used to style the file input field as button -->
+                            <span class="btn btn-success fileinput-button">
+                                <i class="glyphicon glyphicon-plus"></i>
+                                <span>Add files...</span>
+                                <input type="file" name="file" multiple>
+                            </span>
+                            <button type="submit" class="btn btn-primary start">
+                                <i class="glyphicon glyphicon-upload"></i>
+                                <span>Start upload</span>
+                            </button>
+                            <button type="reset" class="btn btn-warning cancel">
+                                <i class="glyphicon glyphicon-ban-circle"></i>
+                                <span>Cancel upload</span>
+                            </button>
+                            <button type="button" class="btn btn-danger delete">
+                                <i class="glyphicon glyphicon-trash"></i>
+                                <span>Delete</span>
+                            </button>
+                            <input type="checkbox" class="toggle">
+                            <!-- The global file processing state -->
+                            <span class="fileupload-process"></span>
+                        </div>
+                        <!-- The global progress state -->
+                        <div class="col-lg-5 fileupload-progress fade">
+                            <!-- The global progress bar -->
+                            <div class="progress progress-striped active" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+                                <div class="progress-bar progress-bar-success" style="width:0%;"></div>
+                            </div>
+                            <!-- The extended global progress state -->
+                            <div class="progress-extended">&nbsp;</div>
+                        </div>
+                    </div>
+                    <!-- The table listing the files available for upload/download -->
+                    <table role="presentation" class="table table-striped"><tbody class="files"></tbody></table>
+                </form>
+                <br>
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Notes</h3>
+                    </div>
+                    <div class="panel-body">
+                        <ul>
+                            <li>The maximum file size for uploads in this demo is <strong>50 MB</strong> (default file size is unlimited).</li>
+                            <li>Only image files (<strong>TXT, JPG, GIF, PNG, BMP, RAR, ZIP, 7ZIP, DOC, DOCX</strong>) are allowed in this website.</li>
+                            
+                            <li>You can <strong>drag &amp; drop</strong> files from your desktop on this webpage (see <a href="https://github.com/blueimp/jQuery-File-Upload/wiki/Browser-support">Browser support</a>).</li>
+                            <li>Please refer to the <a href="https://github.com/blueimp/jQuery-File-Upload">project website</a> and <a href="https://github.com/blueimp/jQuery-File-Upload/wiki">documentation</a> for more information.</li>
+                            <li>Built with Twitter's <a href="http://twitter.github.com/bootstrap/">Bootstrap</a> CSS framework and Icons from <a href="http://glyphicons.com/">Glyphicons</a>.</li>
+                        </ul>
+                    </div>
                 </div>
-                <!-- The extended global progress state -->
-                <div class="progress-extended">&nbsp;</div>
             </div>
-        </div>
-        <!-- The table listing the files available for upload/download -->
-        <table role="presentation" class="table table-striped"><tbody class="files"></tbody></table>
-    </form>
-    <br>
-    <div class="panel panel-default">
-        <div class="panel-heading">
-            <h3 class="panel-title">Notes</h3>
-        </div>
-        <div class="panel-body">
-            <ul>
-                <li>The maximum file size for uploads in this demo is <strong>50 MB</strong> (default file size is unlimited).</li>
-                <li>Only image files (<strong>TXT, JPG, GIF, PNG, BMP, RAR, ZIP, 7ZIP, DOC, DOCX</strong>) are allowed in this website.</li>
-                
-                <li>You can <strong>drag &amp; drop</strong> files from your desktop on this webpage (see <a href="https://github.com/blueimp/jQuery-File-Upload/wiki/Browser-support">Browser support</a>).</li>
-                <li>Please refer to the <a href="https://github.com/blueimp/jQuery-File-Upload">project website</a> and <a href="https://github.com/blueimp/jQuery-File-Upload/wiki">documentation</a> for more information.</li>
-                <li>Built with Twitter's <a href="http://twitter.github.com/bootstrap/">Bootstrap</a> CSS framework and Icons from <a href="http://glyphicons.com/">Glyphicons</a>.</li>
-            </ul>
-        </div>
-    </div>
-</div>
+            
+            <!-- The blueimp Gallery widget -->
+            <div id="blueimp-gallery" class="blueimp-gallery blueimp-gallery-controls" data-filter=":even">
+                <div class="slides"></div>
+                <h3 class="title"></h3>
+                <a class="prev">‹</a>
+                <a class="next">›</a>
+                <a class="close">×</a>
+                <a class="play-pause"></a>
+                <ol class="indicator"></ol>
+            </div>
 
-<!-- The blueimp Gallery widget -->
-<div id="blueimp-gallery" class="blueimp-gallery blueimp-gallery-controls" data-filter=":even">
-    <div class="slides"></div>
-    <h3 class="title"></h3>
-    <a class="prev">‹</a>
-    <a class="next">›</a>
-    <a class="close">×</a>
-    <a class="play-pause"></a>
-    <ol class="indicator"></ol>
-</div>
+            {% raw %}            
+            <!-- The template to display files available for upload -->
+            <script id="template-upload" type="text/x-tmpl">
+            {% for (var i=0, file; file=o.files[i]; i++) { %}
+                <tr class="template-upload fade">
+                    <td>
+                        <span class="preview"></span>
+                    </td>
+                    <td>
+                        <p class="name">{%=file.name%}</p>
+                        <strong class="error text-danger"></strong>
+                    </td>
+                    <td>
+                        <p class="size">Processing...</p>
+                        <div class="progress progress-striped active" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-bar progress-bar-success" style="width:0%;"></div></div>
+                    </td>
+                    <td>
+                        {% if (!i && !o.options.autoUpload) { %}
+                            <button class="btn btn-primary start" disabled>
+                                <i class="glyphicon glyphicon-upload"></i>
+                                <span>Start</span>
+                            </button>
+                        {% } %}
+                        {% if (!i) { %}
+                            <button class="btn btn-warning cancel">
+                                <i class="glyphicon glyphicon-ban-circle"></i>
+                                <span>Cancel</span>
+                            </button>
+                        {% } %}
+                    </td>
+                </tr>
+            {% } %}
+            </script>
+            <!-- The template to display files available for download -->
+            <script id="template-download" type="text/x-tmpl">
+            {% for (var i=0, file; file=o.files[i]; i++) { %}
+                <tr class="template-download fade">
+                    <td>
+                        <span class="preview">
+                            {% if (file.thumbnailUrl) { %}
+                                <a href="{%=file.url%}" title="{%=file.name%}" download="{%=file.name%}" data-gallery><img src="{%=file.thumbnailUrl%}"></a>
+                            {% } %}
+                        </span>
+                    </td>
+                    <td>
+                        <p class="name">
+                            {% if (file.url) { %}
+                                <a href="{%=file.url%}" title="{%=file.name%}" download="{%=file.name%}" {%=file.thumbnailUrl?'data-gallery':''%}>{%=file.name%}</a>
+                            {% } else { %}
+                                <span>{%=file.name%}</span>
+                            {% } %}
+                        </p>
+                        {% if (file.error) { %}
+                            <div><span class="label label-danger">Error</span> {%=file.error%}</div>
+                        {% } %}
+                    </td>
+                    <td>
+                        <span class="size">{%=o.formatFileSize(file.size)%}</span>
+                    </td>
+                    <td>
+                        {% if (file.deleteUrl) { %}
+                            <button class="btn btn-danger delete" data-type="{%=file.deleteType%}" data-url="{%=file.deleteUrl%}"{% if (file.deleteWithCredentials) { %} data-xhr-fields='{"withCredentials":true}'{% } %}>
+                                <i class="glyphicon glyphicon-trash"></i>
+                                <span>Delete</span>
+                            </button>
+                            <input type="checkbox" name="delete" value="1" class="toggle">
+                        {% } else { %}
+                            <button class="btn btn-warning cancel">
+                                <i class="glyphicon glyphicon-ban-circle"></i>
+                                <span>Cancel</span>
+                            </button>
+                        {% } %}
+                    </td>
+                </tr>
+            {% } %}
+            </script>
+            {% endraw %}
+		</div>
+	</div>
 
-{% raw %}
-<!-- The template to display files available for upload -->
-<script id="template-upload" type="text/x-tmpl">
-{% for (var i=0, file; file=o.files[i]; i++) { %}
-    <tr class="template-upload fade">
-        <td>
-            <span class="preview"></span>
-        </td>
-        <td>
-            <p class="name">{%=file.name%}</p>
-            <strong class="error text-danger"></strong>
-        </td>
-        <td>
-            <p class="size">Processing...</p>
-            <div class="progress progress-striped active" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-bar progress-bar-success" style="width:0%;"></div></div>
-        </td>
-        <td>
-            {% if (!i && !o.options.autoUpload) { %}
-                <button class="btn btn-primary start" disabled>
-                    <i class="glyphicon glyphicon-upload"></i>
-                    <span>Start</span>
-                </button>
-            {% } %}
-            {% if (!i) { %}
-                <button class="btn btn-warning cancel">
-                    <i class="glyphicon glyphicon-ban-circle"></i>
-                    <span>Cancel</span>
-                </button>
-            {% } %}
-        </td>
-    </tr>
-{% } %}
-</script>
-<!-- The template to display files available for download -->
-<script id="template-download" type="text/x-tmpl">
-{% for (var i=0, file; file=o.files[i]; i++) { %}
-    <tr class="template-download fade">
-        <td>
-            <span class="preview">
-                {% if (file.thumbnailUrl) { %}
-                    <a href="{%=file.url%}" title="{%=file.name%}" download="{%=file.name%}" data-gallery><img src="{%=file.thumbnailUrl%}"></a>
-                {% } %}
-            </span>
-        </td>
-        <td>
-            <p class="name">
-                {% if (file.url) { %}
-                    <a href="{%=file.url%}" title="{%=file.name%}" download="{%=file.name%}" {%=file.thumbnailUrl?'data-gallery':''%}>{%=file.name%}</a>
-                {% } else { %}
-                    <span>{%=file.name%}</span>
-                {% } %}
-            </p>
-            {% if (file.error) { %}
-                <div><span class="label label-danger">Error</span> {%=file.error%}</div>
-            {% } %}
-        </td>
-        <td>
-            <span class="size">{%=o.formatFileSize(file.size)%}</span>
-        </td>
-        <td>
-            {% if (file.deleteUrl) { %}
-                <button class="btn btn-danger delete" data-type="{%=file.deleteType%}" data-url="{%=file.deleteUrl%}"{% if (file.deleteWithCredentials) { %} data-xhr-fields='{"withCredentials":true}'{% } %}>
-                    <i class="glyphicon glyphicon-trash"></i>
-                    <span>Delete</span>
-                </button>
-                <input type="checkbox" name="delete" value="1" class="toggle">
-            {% } else { %}
-                <button class="btn btn-warning cancel">
-                    <i class="glyphicon glyphicon-ban-circle"></i>
-                    <span>Cancel</span>
-                </button>
-            {% } %}
-        </td>
-    </tr>
-{% } %}
-</script>
-{% endraw %}
+	<!-- Bootstrap core JavaScript
+	================================================== -->
+	<!-- Placed at the end of the document so the pages load faster -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+	<script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
 
-{% endblock %}
+	<!-- [TBD] active class gets referesh -->
+	<script>
+		$('.nav li').click(function(e) {
+			console.log(e.currentTarget,"//",e.target,"//",this);
+			// localStorage.setItem('activeTab', $(e.target).attr('href'));
+
+			e.stopPropagation();
+			$('.nav li').removeClass('active');
+			$(this).addClass('active');
+		});
+	</script>
+
+	<script>
+		$(document).ready(function(){
+			$('a[data-toggle="tab"]').on('show.bs.tab', function(e) {
+				localStorage.setItem('activeTab', $(e.target).attr('href'));
+			});
+			var activeTab = localStorage.getItem('activeTab');
+			if(activeTab){
+				$('#myTab a[href="' + activeTab + '"]').tab('show');
+			}
+		});
+	</script>
+
+	<!-- file uploader script -->
+	<!-- <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script> -->
+	<!-- The jQuery UI widget factory, can be omitted if jQuery UI is already included -->
+	<script src="static/js/vendor/jquery.ui.widget.js"></script>
+	<!-- The Templates plugin is included to render the upload/download listings -->
+	<script src="http://blueimp.github.io/JavaScript-Templates/js/tmpl.min.js"></script>
+	<!-- The Load Image plugin is included for the preview images and image resizing functionality -->
+	<script src="http://blueimp.github.io/JavaScript-Load-Image/js/load-image.all.min.js"></script>
+	<!-- The Canvas to Blob plugin is included for image resizing functionality -->
+	<script src="http://blueimp.github.io/JavaScript-Canvas-to-Blob/js/canvas-to-blob.min.js"></script>
+	<!-- Bootstrap JS is not required, but included for the responsive demo navigation -->
+	<!-- <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script> -->
+	<!-- blueimp Gallery script -->
+	<script src="http://blueimp.github.io/Gallery/js/jquery.blueimp-gallery.min.js"></script>
+	<!-- The Iframe Transport is required for browsers without support for XHR file uploads -->
+	<script src="static/js/jquery.iframe-transport.js"></script>
+	<!-- The basic File Upload plugin -->
+	<script src="static/js/jquery.fileupload.js"></script>
+	<!-- The File Upload processing plugin -->
+	<script src="static/js/jquery.fileupload-process.js"></script>
+	<!-- The File Upload image preview & resize plugin -->
+	<script src="static/js/jquery.fileupload-image.js"></script>
+	<!-- The File Upload audio preview plugin -->
+	<script src="static/js/jquery.fileupload-audio.js"></script>
+	<!-- The File Upload video preview plugin -->
+	<script src="static/js/jquery.fileupload-video.js"></script>
+	<!-- The File Upload validation plugin -->
+	<script src="static/js/jquery.fileupload-validate.js"></script>
+	<!-- The File Upload user interface plugin -->
+	<script src="static/js/jquery.fileupload-ui.js"></script>
+	<!-- The main application script -->
+	<script src="static/js/main.js"></script>
+	<!-- The XDomainRequest Transport is included for cross-domain file deletion for IE 8 and IE 9 -->
+	<!--[if (gte IE 8)&(lt IE 10)]>
+	<script src="js/cors/jquery.xdr-transport.js"></script>
+	<![endif]-->
+	
+
+</body>
+</html>

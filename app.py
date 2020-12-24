@@ -12,10 +12,21 @@ from lib.upload_file import uploadfile
 from PIL import Image
 from inspect import currentframe, getframeinfo
 # print(frameinfo.filename, frameinfo.lineno)
-import os, PIL, simplejson, traceback
+import sys, os, PIL, simplejson, traceback, logging
 
+from datetime import datetime
+today = datetime.now()
+filename = "log_" + today.strftime('%Y%m%d') + ".log"
+logging.basicConfig(filename=filename, level=logging.DEBUG)
 
-mysql = MySQL()
+def getFileName():
+    frameinfo = getframeinfo(currentframe())
+    return frameinfo.filename
+
+def GetLineNumber():
+    cf = currentframe()
+    return cf.f_back.f_lineno
+
 app = Flask('__name__')
 app.config['SECRET_KEY'] = os.urandom(20)
 app.config['MYSQL_DATABASE_USER'] = 'dbms'
@@ -25,7 +36,11 @@ app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 app.config['UPLOAD_FOLDER'] = 'data/'
 app.config['THUMBNAIL_FOLDER'] = 'data/thumbnail/'
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
+
+mysql = MySQL()
 mysql.init_app(app)
+mysqlconn = mysql.connect()
+mysqlcursor = mysqlconn.cursor()
 
 # Connect to Database and create database session
 Base.metadata.bind = engine
@@ -41,28 +56,30 @@ bootstrap = Bootstrap(app)
 
 @app.before_request
 def before_request():
+    ######################################
+    # [TBD]
+    if str(request.path).split('/')[1] in ('static', 'upload'):
+        return
+    ######################################
+
     import datetime
     now = datetime.datetime.now()
-    # print(now, 'before_request called ', session)
 
     key_list = []
     for key in session:
         key_list.append(key)
     
-    # print(key_list)
     username = ''
     type = ''
     if ('username' in key_list) == True:
         username = session['username']
     if ('type' in key_list) == True:
         type = session['type']
-    # print(username, type)
     if ('last_active' in key_list) == False:
-        # print(session)
         session['last_active'] = now
-        # print('session[\'last_active\']', session['last_active'])
 
     try:
+        alchemy_session = DBSession()
         user = alchemy_session.query(User).filter_by(username=username).one()
         loginhistory = LoginHistory(id=str(uuid_url64()), user=user, request_url=request.url, remote_address=request.remote_addr)
         alchemy_session.add(loginhistory)
@@ -71,43 +88,24 @@ def before_request():
         activeloginsession = ActiveLoginSession(user=user, token=str(uuid_url64()))
         alchemy_session.add(activeloginsession)
         alchemy_session.commit()
-        alchemy_session['token'] = activeloginsession.token
+        session['token'] = activeloginsession.token
     except Exception as e:
-        print(str(e))
-        alchemy_session.rollback()
+        msg = str(e)
+        logging.error(msg)
         return
-        # [TBD]
-        # error_msg = str(e)
-        # if error_msg == 'No row was found for one()':
-        #     error_msg = ''
-        # else:
-        #     error_msg = '[' + str(getframeinfo(currentframe()).filename) + ':' + str(getframeinfo(currentframe()).lineno) + '] ' + str(e)
-        
-        # try:
-        #     loginhistory = LoginHistory(id=str(uuid_url64()), request_url=request.url, remote_address=request.remote_addr, error_log =error_msg)
-        #     alchemy_session.add(loginhistory)
-        #     alchemy_session.commit()
-        # except Exception as e:
-        #     alchemy_session.rollback()
-        #     return
+
     
     if ('token' in key_list) == True:
-        # print(session)
         try:
-            active_session_object = session.query(ActiveLoginSession).filter_by(token=session['token']).one()
+            alchemy_session = DBSession()
+            active_session_object = alchemy_session.query(ActiveLoginSession).filter_by(token=session['token']).one()
             active_session_object.updated_date = session['last_active']
             alchemy_session.add(active_session_object)
             alchemy_session.commit()
         except Exception as e:
-            print(str(e))
-            alchemy_session.rollback()
-            return
-            # [TBD]
-            # error_msg = '[' + getframeinfo(currentframe()).filename + ':' + getframeinfo(currentframe()).lineno + '] ' + str(e)
-            # loginhistory = LoginHistory(id=str(uuid_url64()), request_url=request.url, remote_address=request.remote_addr, error_log=error_msg)
-            # alchemy_session.add(loginhistory)
-            # alchemy_session.commit()
-            # redirect('/login')
+            msg = str(e)
+            logging.error(msg)
+            return redirect('/login')
     else:
         return
 
@@ -120,13 +118,7 @@ def before_request():
             flash("Your session has expired after 30 minutes, you have been logged out")
             disconnect()
     except Exception as e:
-        return
-        # [TBD]
-        # error_msg = str(e)
-        # loginhistory = LoginHistory(id=str(uuid_url64()), request_url=request.url, remote_address=request.remote_addr, error_log ='[' + currentframe().filename + ':' + currentframe().lineno + '] ' + error_msg)
-        # alchemy_session.add(loginhistory)
-        # alchemy_session.commit()
-        # pass
+        pass
 
 # Disconnect based on provider
 @app.route('/disconnect')
@@ -285,18 +277,23 @@ def signup():
         address = request.form.get('address')
         email = request.form.get('email')
         number = request.form.get('number')
-        conn = mysql.connect()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM user where username ='" + username + "'")
-        data = cursor.fetchone()
+        mysqlcursor.execute("SELECT * FROM user where username ='" + username + "'")
+        data = mysqlcursor.fetchone()
         if data is not None:
             msg = "username already exists <br />"
+
         flag = 0
-        flag = cursor.execute(
-            "INSERT INTO user (username,password,type) VALUES('" + username + "','" + password + "','user')")
-        flag = cursor.execute(
-            "INSERT INTO profile (username,name,dob,sex,email,address,number) VALUES('" + username + "','" + name + "','" + dob + "','" + sex + "','" + email + "','" + address + "','" + number + "')")
-        conn.commit()
+        try:
+            flag = mysqlcursor.execute(
+                "INSERT INTO user (username,password,type) VALUES('" + username + "','" + password + "','user')")
+            flag = mysqlcursor.execute(
+                "INSERT INTO profile (username,name,dob,sex,email,address,number) VALUES('" + username + "','" + name + "','" + dob + "','" + sex + "','" + email + "','" + address + "','" + number + "')")
+            mysqlcursor.commit()
+        except Exception as e:
+            mysqlconn.rollback()
+            logging.error(str(e))
+            flag = 0
+
         if flag == 0:
             msg = "wrong inputs, try again. <br />"
         else:
@@ -311,9 +308,8 @@ def login():
         return redirect('/dashboard')
     username = request.form.get('username')
     password = request.form.get('password')
-    cursor = mysql.connect().cursor()
-    cursor.execute("SELECT * FROM user where username='" + username + "' and password='" + password + "'")
-    data = cursor.fetchone()
+    mysqlcursor.execute("SELECT * FROM user where username='" + username + "' and password='" + password + "'")
+    data = mysqlcursor.fetchone()
     if data is None:
         return render_template('wrong-login.html')
     else:
@@ -327,28 +323,23 @@ def login():
 def users():
     if 'username' not in session:
         return redirect('/')
-    cursor = mysql.connect().cursor()
-    cursor.execute("SELECT type FROM user where username='" + session['username'] + "'")
-    data = cursor.fetchone()
+    mysqlcursor.execute("SELECT type FROM user where username='" + session['username'] + "'")
+    data = mysqlcursor.fetchone()
     if "admin" not in data:
         return "you don't have access to this cause you're not an admin."
-    conn = mysql.connect()
-    cursor = conn.cursor()
-    cursor.execute("SELECT username, type FROM user WHERE EXISTS(SELECT * FROM user WHERE type = \"admin\")")
-    data = cursor.fetchall()
+    mysqlcursor.execute("SELECT username, type FROM user WHERE EXISTS(SELECT * FROM user WHERE type = \"admin\")")
+    data = mysqlcursor.fetchall()
     return render_template("users.html", data=data)
-
 
 @app.route('/products')
 def products():
     if 'username' not in session:
         return redirect('/')
 
-    cursor = mysql.connect().cursor()
-    cursor.execute(
+    mysqlcursor.execute(
         "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
             'username'] + "\" and user.username = profile.username")
-    data = cursor.fetchone()
+    data = mysqlcursor.fetchone()
     if data is None:
         return abort(404)
     if 'alerts' in session:
@@ -357,6 +348,7 @@ def products():
     else:
         alert = None
 
+    alchemy_session = DBSession()
     products = alchemy_session.query(ProductMaster).all()
     return render_template("products.html", data=data, alert=alert, products=products)
 
@@ -366,11 +358,10 @@ def items():
     if 'username' not in session:
         return redirect('/')
 
-    cursor = mysql.connect().cursor()
-    cursor.execute(
+    mysqlcursor.execute(
         "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
             'username'] + "\" and user.username = profile.username")
-    data = cursor.fetchone()
+    data = mysqlcursor.fetchone()
     if data is None:
         return abort(404)
     if 'alerts' in session:
@@ -379,6 +370,7 @@ def items():
     else:
         alert = None
 
+    alchemy_session = DBSession()
     items = alchemy_session.query(ItemMaster).all()
     return render_template("items.html", data=data, items=items, alert=alert)
 
@@ -388,11 +380,10 @@ def filelist():
     if 'username' not in session:
         return redirect('/')
 
-    cursor = mysql.connect().cursor()
-    cursor.execute(
+    mysqlcursor.execute(
         "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
             'username'] + "\" and user.username = profile.username")
-    data = cursor.fetchone()
+    data = mysqlcursor.fetchone()
     if data is None:
         return abort(404)
     if 'alerts' in session:
@@ -408,11 +399,10 @@ def loginhistory():
     if 'username' not in session:
         return redirect('/')
 
-    cursor = mysql.connect().cursor()
-    cursor.execute(
+    mysqlcursor.execute(
         "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
             'username'] + "\" and user.username = profile.username")
-    data = cursor.fetchone()
+    data = mysqlcursor.fetchone()
     if data is None:
         return abort(404)
     if 'alerts' in session:
@@ -421,6 +411,7 @@ def loginhistory():
     else:
         alert = None
 
+    alchemy_session = DBSession()
     loginhistories = alchemy_session.query(LoginHistory).order_by(desc(LoginHistory.login_time))
     return render_template("loginhistory.html", data=data, alert=alert, loginhistories=loginhistories)
 
@@ -428,16 +419,12 @@ def loginhistory():
 def profiles():
     if 'username' not in session:
         return redirect('/')
-    cursor = mysql.connect().cursor()
-    cursor.execute("SELECT type FROM user where username='" + session['username'] + "'")
-    data = cursor.fetchone()
+    mysqlcursor.execute("SELECT type FROM user where username='" + session['username'] + "'")
+    data = mysqlcursor.fetchone()
     if "admin" not in data:
         return "you don't have access to this cause you're not an admin."
-    conn = mysql.connect()
-    cursor = conn.cursor()
-    # cursor.execute("SELECT username FROM user WHERE EXISTS(SELECT * FROM user WHERE type = \"admin\")")
-    cursor.execute("SELECT * FROM erp.profile")
-    data = cursor.fetchall()
+    mysqlcursor.execute("SELECT * FROM erp.profile")
+    data = mysqlcursor.fetchall()
     return render_template("profiles.html", data=data)
 
 
@@ -454,11 +441,10 @@ def logout():
 def settings():
     if 'username' not in session:
         return redirect('/')
-    cursor = mysql.connect().cursor()
-    cursor.execute(
+    mysqlcursor.execute(
         "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
             'username'] + "\" and user.username = profile.username")
-    data = cursor.fetchone()
+    data = mysqlcursor.fetchone()
     if data is None:
         return abort(404)
     if 'alerts' in session:
@@ -491,6 +477,7 @@ def addproduct():
         date_time_obj = datetime.datetime.strptime(in_createddatetime, '%Y-%m-%dT%H:%M')
         print('Date-time:', date_time_obj)
 
+        alchemy_session = DBSession()
         product = alchemy_session.query(ProductMaster).filter_by(id=in_product).one()
         user = alchemy_session.query(User).filter_by(username=in_user).one()
         facility = alchemy_session.query(FacilityMaster).filter_by(id=in_facilities).one()
@@ -503,11 +490,10 @@ def addproduct():
 
         return redirect('/showproductstatus')
     else:
-        cursor = mysql.connect().cursor()
-        cursor.execute(
+        mysqlcursor.execute(
             "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
                 'username'] + "\" and user.username = profile.username")
-        data = cursor.fetchone()
+        data = mysqlcursor.fetchone()
         if data is None:
             return abort(404)
         if 'alerts' in session:
@@ -516,6 +502,7 @@ def addproduct():
         else:
             alert = None
 
+        alchemy_session = DBSession()
         products = alchemy_session.query(ProductMaster).all()
         users = alchemy_session.query(User).all()
         recipes = alchemy_session.query(RecipeMaster).all()
@@ -529,11 +516,10 @@ def showproductstatus():
     if 'username' not in session:
         return redirect('/')
 
-    cursor = mysql.connect().cursor()
-    cursor.execute(
+    mysqlcursor.execute(
         "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
             'username'] + "\" and user.username = profile.username")
-    data = cursor.fetchone()
+    data = mysqlcursor.fetchone()
 
     if request.method == "GET":
         if data is None:
@@ -544,6 +530,7 @@ def showproductstatus():
         else:
             alert = None
 
+        alchemy_session = DBSession()
         productstatuses = alchemy_session.query(ProductStatusMaster).all()
         return render_template('showproductstatus.html', data=data, alert=alert, productstatuses=productstatuses)
     else:
@@ -556,11 +543,10 @@ def updateproductstatus(productstatus_id):
     if 'username' not in session:
         return redirect('/')
 
-    cursor = mysql.connect().cursor()
-    cursor.execute(
+    mysqlcursor.execute(
         "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
             'username'] + "\" and user.username = profile.username")
-    data = cursor.fetchone()
+    data = mysqlcursor.fetchone()
 
     if request.method == "GET":
         if data is None:
@@ -571,6 +557,7 @@ def updateproductstatus(productstatus_id):
         else:
             alert = None
 
+        alchemy_session = DBSession()
         productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
         return render_template('updateproductstatus.html', data=data, alert=alert, productstatus=productstatus)
     else:
@@ -582,11 +569,10 @@ def showproductstock():
     if 'username' not in session:
         return redirect('/')
 
-    cursor = mysql.connect().cursor()
-    cursor.execute(
+    mysqlcursor.execute(
         "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
             'username'] + "\" and user.username = profile.username")
-    data = cursor.fetchone()
+    data = mysqlcursor.fetchone()
 
     if request.method == "GET":
         if data is None:
@@ -597,6 +583,7 @@ def showproductstock():
         else:
             alert = None
 
+        alchemy_session = DBSession()
         productstocks = alchemy_session.query(ProductStockMaster).all()
         return render_template('showproductstock.html', data=data, alert=alert, productstocks=productstocks)
     else:
@@ -608,22 +595,20 @@ def showproductstock():
 def dashboard():
     if 'username' not in session:
         return redirect('/')
-    conn = mysql.connect()
-    cursor = conn.cursor()
-    cursor.execute(
+    mysqlcursor.execute(
         "SELECT username FROM user WHERE NOT EXISTS (SELECT * FROM profile WHERE user.username = profile.username)")
-    data = cursor.fetchone()
+    data = mysqlcursor.fetchone()
     if data is not None:
         if session['username'] in data:
-            cursor.execute("DELETE FROM user WHERE username = '" + session['username'] + "'")
-            conn.commit()
+            mysqlcursor.execute("DELETE FROM user WHERE username = '" + session['username'] + "'")
+            mysqlcursor.commit()
             session.pop('username')
             session.pop('type')
             return "Your details are not filled. Please sign up again <a href=\"/signup\">here</a>. Account has been suspended."
-    cursor.execute(
+    mysqlcursor.execute(
         "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
             'username'] + "\" and user.username = profile.username")
-    data = cursor.fetchone()
+    data = mysqlcursor.fetchone()
     if data is None:
         return abort(404)
     return render_template("dashboard.html", data=data)
@@ -641,22 +626,20 @@ def changesettings():
     username = request.form.get('username')
     password = request.form.get('password')
     newAdmin = request.form.get('newAdmin')
-    conn = mysql.connect()
-    cursor = conn.cursor()
     msg = " "
     if username != "" and username is not None:
         if username == session['username']:
             msg = msg + "<br /> Same Username "
         else:
-            cursor.execute("SELECT username FROM user WHERE username = \"" + username + "\"")
-            data = cursor.fetchone()
+            mysqlcursor.execute("SELECT username FROM user WHERE username = \"" + username + "\"")
+            data = mysqlcursor.fetchone()
             if data is None:
                 msg = msg + "<br /> Username Available"
-                cursor.execute(
+                mysqlcursor.execute(
                     "UPDATE user SET username = \"" + username + "\" WHERE username = \"" + session['username'] + "\"")
-                cursor.execute("UPDATE profile SET username = \"" + username + "\" WHERE username = \"" + session[
+                mysqlcursor.execute("UPDATE profile SET username = \"" + username + "\" WHERE username = \"" + session[
                     'username'] + "\"")
-                conn.commit()
+                mysqlcursor.commit()
                 session['username'] = username
                 msg = msg + "<br />username changed to " + username
             else:
@@ -664,23 +647,23 @@ def changesettings():
     else:
         msg = msg + "<br /> username is none"
     if password != "" and password is not None:
-        cursor.execute("SELECT password FROM user WHERE username = \"" + username + "\"")
-        data = cursor.fetchone()
+        mysqlcursor.execute("SELECT password FROM user WHERE username = \"" + username + "\"")
+        data = mysqlcursor.fetchone()
         if password == data:
             msg = msg + "<br /> Same Password."
         else:
-            cursor.execute(
+            mysqlcursor.execute(
                 "UPDATE user SET password = \"" + password + "\" WHERE username = \"" + session['username'] + "\"")
-            conn.commit()
+            mysqlcursor.commit()
     msg = msg + "<br /> Password changed."
     if newAdmin != "" and newAdmin is not None:
-        cursor.execute("SELECT type FROM user WHERE username = \"" + str(newAdmin) + "\"")
-        data = cursor.fetchone()
+        mysqlcursor.execute("SELECT type FROM user WHERE username = \"" + str(newAdmin) + "\"")
+        data = mysqlcursor.fetchone()
         if data[0] == "admin":
             msg = msg + "<br /> Already admin "
         else:
-            cursor.execute("UPDATE user SET type = \"admin\" WHERE username = \"" + str(newAdmin) + "\"")
-            conn.commit()
+            mysqlcursor.execute("UPDATE user SET type = \"admin\" WHERE username = \"" + str(newAdmin) + "\"")
+            mysqlcursor.commit()
             msg = msg + "<br />" + newAdmin + " is now admin "
     session['alerts'] = msg
     return redirect("/settings")
