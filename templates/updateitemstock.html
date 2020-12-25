@@ -1,0 +1,46 @@
+{% extends "main.html" %}
+{% block content %}
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+	<br />
+	<h1 class="page-header">Update Item Stock</h1>
+	<hr style="border-color: black;">
+	{% if alert %}
+	<div class="alert alert-info alert-dismissible" role="alert">
+		<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+		<strong>Heads, up!</strong> {{ alert }}
+	</div>
+	{% endif %}
+	<div class="table-responsive">
+			<table class="table table-striped">
+				<thead>
+					<tr>
+						<th>id</th>
+						<th>item_id</th>
+						<th>stock</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>{{itemstock.id}}</td>
+						<td>{{itemstock.item_id}}</td>
+						<td>{{itemstock.stock}}</td>
+					</tr>
+				</tbody>
+			</table>
+
+	</div>
+
+	<div class="row">	
+			<form class="form-signin" action="/updateitemstock/{{itemstock.item_id}}/" method="POST">
+				<h3 class="form-signin-heading" id="center">Quantity</h3>
+				<label for="InputQuantity" class="sr-only"></label>
+				<input type="number" id="InputQuantity" name="quantity">
+				<h3 class="form-signin-heading"></h3>
+				<button class="btn btn-lg btn-primary btn-block" type="submit">Update</button>
+			</form>		
+	</div>
+	<button type="button" onclick="document.location = '{{ url_for('items')}}';">
+			Previous
+	</button>
+</div>
+{% endblock %}

@@ -18,7 +18,7 @@
 							<th>id</th>
 							<th>product_id</th>
 							<th>target_quantity</th>
-							<th>target_quantity</th>
+							<th>quantity</th>
 							<th>unit</th>
 							<th>person_in_charge</th>
 							<th>facility_id</th>
@@ -41,9 +41,12 @@
 					</tbody>
 				</table>
 		</div>
-		
-		<form class="form-signin" action="/#" method="POST">
+
+		<form class="form-signin" action="/updateproductstatus/{{productstatus.id}}/" method="POST">
 			<br/>
+			<h3 class="form-signin-heading" id="center">Quantity</h3>
+			<label for="InputQuantity" class="sr-only"></label>
+			<input type="number" id="InputQuantity" name="quantity">
 			<h3 class="form-signin-heading"></h3>
 			<button class="btn btn-lg btn-primary btn-block" type="submit">Update</button>
 		</form>		

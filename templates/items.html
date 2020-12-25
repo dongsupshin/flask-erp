@@ -13,10 +13,10 @@
 				</tr>
 			</thead>
 			<tbody>
-				{% for i in items%}
-				<tr>
-					<td>{{i.id}}</td>
-					<td>{{i.name}}</td>
+				{% for item in items%}
+				<tr onclick="document.location = '{{ url_for('updateitemstock', item_id=item.id)}}';">
+					<td>{{item.id}}</td>
+					<td>{{item.name}}</td>
 				</tr>
 				{% endfor %}
 

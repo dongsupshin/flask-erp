@@ -105,9 +105,11 @@ class ProductStatusMaster(Base):
 class ItemMaster(Base):
     __tablename__ = 'item_master'
     
-    id = Column(String(256), primary_key=True)
-    name = Column(String(256), nullable=False)
-
+    id = Column(Integer, Sequence(__tablename__ + '_seq'), primary_key=True)
+    name = Column(String(256), nullable=False, unique=True)
+    user = relationship(User)
+    person_in_charge = Column(String(256), ForeignKey('user.username'))
+    
     time_created = Column(DateTime(timezone=True), server_default=func.now())
     time_updated = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -117,9 +119,9 @@ class ItemStockMaster(Base):
     id = Column(Integer, Sequence(__tablename__ + '_seq'), primary_key=True)
 
     item = relationship(ItemMaster)
-    item_id = Column(String(256), ForeignKey('item_master.id'))
+    item_id = Column(Integer, ForeignKey('item_master.id'), unique=True)
 
-    stock = Column(Integer, nullable=False)
+    stock = Column(Integer, nullable=False, default=0)
 
     time_created = Column(DateTime(timezone=True), server_default=func.now())
     time_updated = Column(DateTime(timezone=True), onupdate=func.now())

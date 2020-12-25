@@ -1,0 +1,35 @@
+{% extends "main.html" %}
+{% block content %}
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+	<br />
+	<h1 class="page-header">Add Item</h1>
+	<hr style="border-color: black;">
+	{% if alert %}
+	<div class="alert alert-info alert-dismissible" role="alert">
+		<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+		<strong>Heads, up!</strong> {{ alert }}
+	</div>
+	{% endif %}
+	<div class="row">
+		<form class="form-signin" action="/additem" method="POST">
+			<h3 class="form-signin-heading" id="center">Item Name</h3>
+			<label for="itemname"></label>
+			<input type ="text" class="form-control" maxlength="100" name="itemname">
+
+			<h3 class="form-signin-heading" id="center">Select User in charge</h3>
+			<label for="inputUser" class="sr-only"></label>
+			<select name="users" id="inputUser">
+			{% for user in users%}
+				<option value={{user.username}}>{{user.username}}</option>
+			{% endfor %}
+			</select>
+
+			<br/>
+			<h3 class="form-signin-heading"></h3>
+			<button class="btn btn-lg btn-primary btn-block" type="submit">Submit</button>
+		</form>
+
+	</div>
+
+</div>
+{% endblock %}

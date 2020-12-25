@@ -79,7 +79,6 @@ def before_request():
         session['last_active'] = now
 
     try:
-        alchemy_session = DBSession()
         user = alchemy_session.query(User).filter_by(username=username).one()
         loginhistory = LoginHistory(id=str(uuid_url64()), user=user, request_url=request.url, remote_address=request.remote_addr)
         alchemy_session.add(loginhistory)
@@ -97,7 +96,6 @@ def before_request():
     
     if ('token' in key_list) == True:
         try:
-            alchemy_session = DBSession()
             active_session_object = alchemy_session.query(ActiveLoginSession).filter_by(token=session['token']).one()
             active_session_object.updated_date = session['last_active']
             alchemy_session.add(active_session_object)
@@ -288,7 +286,7 @@ def signup():
                 "INSERT INTO user (username,password,type) VALUES('" + username + "','" + password + "','user')")
             flag = mysqlcursor.execute(
                 "INSERT INTO profile (username,name,dob,sex,email,address,number) VALUES('" + username + "','" + name + "','" + dob + "','" + sex + "','" + email + "','" + address + "','" + number + "')")
-            mysqlcursor.commit()
+            mysqlconn.commit()
         except Exception as e:
             mysqlconn.rollback()
             logging.error(str(e))
@@ -348,7 +346,6 @@ def products():
     else:
         alert = None
 
-    alchemy_session = DBSession()
     products = alchemy_session.query(ProductMaster).all()
     return render_template("products.html", data=data, alert=alert, products=products)
 
@@ -370,7 +367,6 @@ def items():
     else:
         alert = None
 
-    alchemy_session = DBSession()
     items = alchemy_session.query(ItemMaster).all()
     return render_template("items.html", data=data, items=items, alert=alert)
 
@@ -411,7 +407,6 @@ def loginhistory():
     else:
         alert = None
 
-    alchemy_session = DBSession()
     loginhistories = alchemy_session.query(LoginHistory).order_by(desc(LoginHistory.login_time))
     return render_template("loginhistory.html", data=data, alert=alert, loginhistories=loginhistories)
 
@@ -477,7 +472,7 @@ def addproduct():
         date_time_obj = datetime.datetime.strptime(in_createddatetime, '%Y-%m-%dT%H:%M')
         print('Date-time:', date_time_obj)
 
-        alchemy_session = DBSession()
+
         product = alchemy_session.query(ProductMaster).filter_by(id=in_product).one()
         user = alchemy_session.query(User).filter_by(username=in_user).one()
         facility = alchemy_session.query(FacilityMaster).filter_by(id=in_facilities).one()
@@ -502,7 +497,6 @@ def addproduct():
         else:
             alert = None
 
-        alchemy_session = DBSession()
         products = alchemy_session.query(ProductMaster).all()
         users = alchemy_session.query(User).all()
         recipes = alchemy_session.query(RecipeMaster).all()
@@ -510,6 +504,38 @@ def addproduct():
         return render_template('addproduct.html', data=data, alert=alert, products=products, users=users,
                                recipes=recipes, facilities=facilities)
 
+@app.route('/additem', methods=['GET', 'POST'])
+def additem():
+    if 'username' not in session:
+        return redirect('/')
+
+    if request.method == "POST":
+        in_item = request.form.get('itemname')
+        in_user = request.form.get('users')
+
+        user = alchemy_session.query(User).filter_by(username=in_user).one()
+        newitem = ItemMaster(name=in_item,user=user)
+        alchemy_session.add(newitem)
+        alchemy_session.commit()
+        itemstock = ItemStockMaster(item=newitem, stock=100)
+        alchemy_session.add(itemstock)
+        alchemy_session.commit()
+        return redirect('/items')
+    else:
+        mysqlcursor.execute(
+            "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
+                'username'] + "\" and user.username = profile.username")
+        data = mysqlcursor.fetchone()
+        if data is None:
+            return abort(404)
+        if 'alerts' in session:
+            alert = session['alerts']
+            session.pop('alerts')
+        else:
+            alert = None
+
+        users = alchemy_session.query(User).all()
+        return render_template('additem.html', data=data, alert=alert, users=users)
 
 @app.route('/showproductstatus', methods=['GET', 'POST'])
 def showproductstatus():
@@ -530,7 +556,6 @@ def showproductstatus():
         else:
             alert = None
 
-        alchemy_session = DBSession()
         productstatuses = alchemy_session.query(ProductStatusMaster).all()
         return render_template('showproductstatus.html', data=data, alert=alert, productstatuses=productstatuses)
     else:
@@ -557,12 +582,76 @@ def updateproductstatus(productstatus_id):
         else:
             alert = None
 
-        alchemy_session = DBSession()
         productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
         return render_template('updateproductstatus.html', data=data, alert=alert, productstatus=productstatus)
     else:
-        return 'hello world'
+        # POST
+        # for key in request.form:
+        # 	print(key)
+        quantity = request.form.get('quantity')
 
+        str_query = 'update ' + str(ProductStatusMaster.__tablename__)
+        str_query += ' set quantity = ' + str(quantity)
+        str_query += ' where id = ' + str(productstatus_id)
+        print(str_query)
+        mysqlcursor.execute(str_query)
+        mysqlconn.commit()
+
+        if data is None:
+            return abort(404)
+        if 'alerts' in session:
+            alert = session['alerts']
+            session.pop('alerts')
+        else:
+            alert = None
+
+        productstatuses = alchemy_session.query(ProductStatusMaster).all()
+        return render_template('showproductstatus.html', data=data, alert=alert, productstatuses=productstatuses)
+
+@app.route('/updateitemstock/<int:item_id>/', methods=['GET', 'POST'])
+def updateitemstock(item_id):
+    if 'username' not in session:
+        return redirect('/')
+
+    mysqlcursor.execute(
+        "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
+            'username'] + "\" and user.username = profile.username")
+    data = mysqlcursor.fetchone()
+
+    if request.method == "GET":
+        if data is None:
+            return abort(404)
+        if 'alerts' in session:
+            alert = session['alerts']
+            session.pop('alerts')
+        else:
+            alert = None
+
+        itemstock = alchemy_session.query(ItemStockMaster).filter_by(item_id=item_id).one()
+        return render_template('updateitemstock.html', data=data, alert=alert, itemstock=itemstock)
+    else:
+        # POST
+        # for key in request.form:
+        # 	print(key)
+        quantity = request.form.get('quantity')
+
+        str_query = 'update ' + str(ItemStockMaster.__tablename__)
+        str_query += ' set stock = ' + str(quantity)
+        str_query += ' where item_id = ' + str(item_id)
+        print(str_query)
+        mysqlcursor.execute(str_query)
+        mysqlconn.commit()
+
+        if data is None:
+            return abort(404)
+        if 'alerts' in session:
+            alert = session['alerts']
+            session.pop('alerts')
+        else:
+            alert = None
+
+        items = alchemy_session.query(ItemMaster).all()
+        return render_template("items.html", data=data, items=items, alert=alert)
 
 @app.route('/showproductstock', methods=['GET', 'POST'])
 def showproductstock():
@@ -583,7 +672,6 @@ def showproductstock():
         else:
             alert = None
 
-        alchemy_session = DBSession()
         productstocks = alchemy_session.query(ProductStockMaster).all()
         return render_template('showproductstock.html', data=data, alert=alert, productstocks=productstocks)
     else:
