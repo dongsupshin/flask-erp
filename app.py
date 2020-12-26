@@ -14,11 +14,11 @@ from inspect import currentframe, getframeinfo
 # print(frameinfo.filename, frameinfo.lineno)
 import sys, os, PIL, simplejson, traceback, logging
 
-# from datetime import datetime
-# today = datetime.now()
-# filename = "log_" + today.strftime('%Y%m%d') + ".log"
-# filename = "flask_erp_log.log"
-# logging.basicConfig(filename=filename, level=logging.DEBUG)
+from datetime import datetime
+today = datetime.now()
+filename = "log_" + today.strftime('%Y%m%d') + ".log"
+filename = "flask_erp_log.log"
+logging.basicConfig(filename=filename, level=logging.DEBUG)
 
 def getFileName():
     frameinfo = getframeinfo(currentframe())
@@ -611,8 +611,20 @@ def updateproductstatus(productstatus_id):
             mysqlcursor.execute(str_query)
             mysqlconn.commit()
 
-            productstatuses = alchemy_session.query(ProductStatusMaster).all()
-            return render_template('showproductstatus.html', data=data, alert=alert, productstatuses=productstatuses)
+            # plus stock
+            productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
+            productstock = alchemy_session.query(ProductStockMaster).filter_by(product_id=productstatus.product_id).one()
+            print('stock : ', productstock.stock)
+            stock = int(productstock.stock) + int(productstatus.quantity)
+            print('new stock : ', stock)
+
+            str_query = 'update ' + str(ProductStockMaster.__tablename__)
+            str_query += ' set stock = ' + str(stock)
+            str_query += ' where id = ' + str(productstock.id)
+            mysqlcursor.execute(str_query)
+            mysqlconn.commit()
+
+            return redirect('/showproductstatus')
 
         if is_cancel_commit == 'True':
             str_query = 'update ' + str(ProductStatusMaster.__tablename__)
@@ -621,8 +633,20 @@ def updateproductstatus(productstatus_id):
             mysqlcursor.execute(str_query)
             mysqlconn.commit()
 
-            productstatuses = alchemy_session.query(ProductStatusMaster).all()
-            return render_template('showproductstatus.html', data=data, alert=alert, productstatuses=productstatuses)
+            # minus stock
+            productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
+            productstock = alchemy_session.query(ProductStockMaster).filter_by(product_id=productstatus.product_id).one()
+            print('stock : ', productstock.stock)
+            stock = int(productstock.stock) - int(productstatus.quantity)
+            print('new stock : ', stock)
+
+            str_query = 'update ' + str(ProductStockMaster.__tablename__)
+            str_query += ' set stock = ' + str(stock)
+            str_query += ' where id = ' + str(productstock.id)
+            mysqlcursor.execute(str_query)
+            mysqlconn.commit()
+
+            return redirect('/showproductstatus')
 
         productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
         if productstatus.status == 'Finished':
@@ -632,13 +656,11 @@ def updateproductstatus(productstatus_id):
         else:    
             str_query = 'update ' + str(ProductStatusMaster.__tablename__)
             str_query += ' set quantity = ' + str(quantity)
-            str_query += ' where id = ' + str(productstatus.ID)
+            str_query += ' where id = ' + str(productstatus.id)
             print(str_query)
             mysqlcursor.execute(str_query)
             mysqlconn.commit()
-
-            productstatuses = alchemy_session.query(ProductStatusMaster).all()
-            return render_template('showproductstatus.html', data=data, alert=alert, productstatuses=productstatuses)
+            return redirect('/showproductstatus')
 
 @app.route('/updateitemstock/<int:item_id>/', methods=['GET', 'POST'])
 def updateitemstock(item_id):
@@ -673,17 +695,7 @@ def updateitemstock(item_id):
         print(str_query)
         mysqlcursor.execute(str_query)
         mysqlconn.commit()
-
-        if data is None:
-            return abort(404)
-        if 'alerts' in session:
-            alert = session['alerts']
-            session.pop('alerts')
-        else:
-            alert = None
-
-        items = alchemy_session.query(ItemMaster).all()
-        return render_template("items.html", data=data, items=items, alert=alert)
+        return redirect('/items')
 
 @app.route('/showproductstock', methods=['GET', 'POST'])
 def showproductstock():
