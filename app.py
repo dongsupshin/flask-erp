@@ -14,10 +14,11 @@ from inspect import currentframe, getframeinfo
 # print(frameinfo.filename, frameinfo.lineno)
 import sys, os, PIL, simplejson, traceback, logging
 
-from datetime import datetime
-today = datetime.now()
-filename = "log_" + today.strftime('%Y%m%d') + ".log"
-logging.basicConfig(filename=filename, level=logging.DEBUG)
+# from datetime import datetime
+# today = datetime.now()
+# filename = "log_" + today.strftime('%Y%m%d') + ".log"
+# filename = "flask_erp_log.log"
+# logging.basicConfig(filename=filename, level=logging.DEBUG)
 
 def getFileName():
     frameinfo = getframeinfo(currentframe())
@@ -584,19 +585,8 @@ def updateproductstatus(productstatus_id):
 
         productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
         return render_template('updateproductstatus.html', data=data, alert=alert, productstatus=productstatus)
+
     else:
-        # POST
-        # for key in request.form:
-        # 	print(key)
-        quantity = request.form.get('quantity')
-
-        str_query = 'update ' + str(ProductStatusMaster.__tablename__)
-        str_query += ' set quantity = ' + str(quantity)
-        str_query += ' where id = ' + str(productstatus_id)
-        print(str_query)
-        mysqlcursor.execute(str_query)
-        mysqlconn.commit()
-
         if data is None:
             return abort(404)
         if 'alerts' in session:
@@ -604,9 +594,51 @@ def updateproductstatus(productstatus_id):
             session.pop('alerts')
         else:
             alert = None
+        # POST
+        # for key in request.form:
+        # 	print(key)
+        quantity = request.form.get('quantity')
+        is_commit = request.form.get('IsCommit')
+        is_cancel_commit = request.form.get('IsCancelCommit')
 
-        productstatuses = alchemy_session.query(ProductStatusMaster).all()
-        return render_template('showproductstatus.html', data=data, alert=alert, productstatuses=productstatuses)
+        # print('is_commit : ', is_commit)
+        # print('is_cancel_commit : ', is_cancel_commit)
+
+        if is_commit == 'True':
+            str_query = 'update ' + str(ProductStatusMaster.__tablename__)
+            str_query += ' set status = \'Finished\''
+            str_query += ' where id = ' + str(productstatus_id)
+            mysqlcursor.execute(str_query)
+            mysqlconn.commit()
+
+            productstatuses = alchemy_session.query(ProductStatusMaster).all()
+            return render_template('showproductstatus.html', data=data, alert=alert, productstatuses=productstatuses)
+
+        if is_cancel_commit == 'True':
+            str_query = 'update ' + str(ProductStatusMaster.__tablename__)
+            str_query += ' set status = \'OnGoing\''
+            str_query += ' where id = ' + str(productstatus_id)
+            mysqlcursor.execute(str_query)
+            mysqlconn.commit()
+
+            productstatuses = alchemy_session.query(ProductStatusMaster).all()
+            return render_template('showproductstatus.html', data=data, alert=alert, productstatuses=productstatuses)
+
+        productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
+        if productstatus.status == 'Finished':
+            productstatuses = alchemy_session.query(ProductStatusMaster).all()
+            alert = 'you are not allowed to upate the product status record ' + str(productstatus.id) + ' because is has been committed.'
+            return render_template('showproductstatus.html', data=data, alert=alert, productstatuses=productstatuses)
+        else:    
+            str_query = 'update ' + str(ProductStatusMaster.__tablename__)
+            str_query += ' set quantity = ' + str(quantity)
+            str_query += ' where id = ' + str(productstatus.ID)
+            print(str_query)
+            mysqlcursor.execute(str_query)
+            mysqlconn.commit()
+
+            productstatuses = alchemy_session.query(ProductStatusMaster).all()
+            return render_template('showproductstatus.html', data=data, alert=alert, productstatuses=productstatuses)
 
 @app.route('/updateitemstock/<int:item_id>/', methods=['GET', 'POST'])
 def updateitemstock(item_id):
