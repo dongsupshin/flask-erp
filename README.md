@@ -43,3 +43,6 @@ For example, IIIT-Delhi’s own [erp.iiitd.edu.in](https://erp.iiitd.edu.in)
 * pip install cryptography
 * pip install mysqlclient
 * pip install sqlalchemy_utils
+* pip install flask_bootstrap
+* pip install lib
+* pip install pillow
