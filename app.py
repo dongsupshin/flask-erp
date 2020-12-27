@@ -326,7 +326,7 @@ def users():
     data = mysqlcursor.fetchone()
     if "admin" not in data:
         return "you don't have access to this cause you're not an admin."
-    mysqlcursor.execute("SELECT username, type FROM user WHERE EXISTS(SELECT * FROM user WHERE type = \"admin\")")
+    mysqlcursor.execute("SELECT username, type, time_created, time_updated FROM user WHERE EXISTS(SELECT * FROM user WHERE type = \"admin\")")
     data = mysqlcursor.fetchall()
     return render_template("users.html", data=data)
 
