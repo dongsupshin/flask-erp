@@ -327,8 +327,8 @@ def users():
     if "admin" not in data:
         return "you don't have access to this cause you're not an admin."
     mysqlcursor.execute("SELECT username, type, time_created, time_updated FROM user WHERE EXISTS(SELECT * FROM user WHERE type = \"admin\")")
-    data = mysqlcursor.fetchall()
-    return render_template("users.html", data=data)
+    users = mysqlcursor.fetchall()
+    return render_template("users.html", data=data, users=users)
 
 @app.route('/products')
 def products():
@@ -355,6 +355,26 @@ def products():
 
     return render_template("products.html", data=data, alert=alert, products=products)
 
+@app.route('/recipes')
+def recipes():
+    if 'username' not in session:
+        return redirect('/')
+
+    mysqlcursor.execute(
+        "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
+            'username'] + "\" and user.username = profile.username")
+    data = mysqlcursor.fetchone()
+    if data is None:
+        return abort(404)
+    if 'alerts' in session:
+        alert = session['alerts']
+        # print('alert : ', alert)
+        session.pop('alerts')
+    else:
+        alert = None
+
+    recipes = alchemy_session.query(RecipeMaster).all()
+    return render_template("recipes.html", data=data, alert=alert, recipes=recipes)
 
 @app.route('/items')
 def items():
@@ -463,6 +483,72 @@ def settings():
         alert = None
     return render_template('settings.html', data=data, alert=alert)
 
+@app.route('/newrecipe', methods=['GET', 'POST'])
+def newrecipe():
+    if 'username' not in session:
+        return redirect('/')
+
+    if request.method == "POST":
+        # for key in request.form:
+        # 	print(key)
+        recipename = request.form.get('recipename')
+        user = request.form.get('user')
+        detail = request.form.get('detail')
+        product_id = request.form.get('product')
+
+        try:
+            product = alchemy_session.query(ProductMaster).filter_by(id=product_id).one()
+            print(recipename, user, detail, product_id)
+            newrecipe = RecipeMaster(name=recipename, detail=detail, product=product)
+            alchemy_session.add(newrecipe)
+            alchemy_session.commit()
+            return redirect('/updaterecipe/' + str(newrecipe.id))
+        except Exception as e:
+            mysqlconn.rollback()
+            alchemy_session.rollback()
+            session['alerts'] = 'you are not allowed to create new recipe.' + str(e)
+            return redirect('/')
+    else:
+        mysqlcursor.execute(
+            "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
+                'username'] + "\" and user.username = profile.username")
+        data = mysqlcursor.fetchone()
+        if data is None:
+            return abort(404)
+        if 'alerts' in session:
+            alert = session['alerts']
+            session.pop('alerts')
+        else:
+            alert = None
+        
+        users = alchemy_session.query(User).all()
+        items = alchemy_session.query(ItemMaster).all()
+        products = alchemy_session.query(ProductMaster).all()
+        return render_template('newrecipe.html', data=data, alert=alert, users=users, products=products, items=items)
+
+@app.route('/updaterecipe/<int:recipe_id>', methods=['GET', 'POST'])
+def updaterecipe(recipe_id):
+    if 'username' not in session:
+        return redirect('/')
+
+    if request.method == "POST":
+        return 'success'
+    else:
+        mysqlcursor.execute(
+            "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
+                'username'] + "\" and user.username = profile.username")
+        data = mysqlcursor.fetchone()
+        if data is None:
+            return abort(404)
+        if 'alerts' in session:
+            alert = session['alerts']
+            session.pop('alerts')
+        else:
+            alert = None
+        
+        recipe = alchemy_session.query(RecipeMaster).filter_by(id=recipe_id).one()
+        return render_template('updaterecipe.html', data=data, alert=alert, recipe=recipe)
+
 @app.route('/newproduct', methods=['GET', 'POST'])
 def newproduct():
     if 'username' not in session:
@@ -529,18 +615,22 @@ def addproduct():
         date_time_obj = datetime.datetime.strptime(in_createddatetime, '%Y-%m-%dT%H:%M')
         print('Date-time:', date_time_obj)
 
-
-        product = alchemy_session.query(ProductMaster).filter_by(id=in_product).one()
-        user = alchemy_session.query(User).filter_by(username=in_user).one()
-        facility = alchemy_session.query(FacilityMaster).filter_by(id=in_facilities).one()
-        newproductstats = ProductStatusMaster(product=product, status="OnGoing", created_date=date_time_obj, user=user,
-                                              unit=in_unit, facility=facility, target_quantity=in_targetquantity,
-                                              quantity=0)
-        alchemy_session.add(newproductstats)
-        alchemy_session.commit()
-        print(newproductstats)
-
-        return redirect('/showproductstatus')
+        try:
+            product = alchemy_session.query(ProductMaster).filter_by(id=in_product).one()
+            user = alchemy_session.query(User).filter_by(username=in_user).one()
+            facility = alchemy_session.query(FacilityMaster).filter_by(id=in_facilities).one()
+            newproductstats = ProductStatusMaster(product=product, status="OnGoing", created_date=date_time_obj, user=user,
+                                                unit=in_unit, facility=facility, target_quantity=in_targetquantity,
+                                                quantity=0)
+            alchemy_session.add(newproductstats)
+            alchemy_session.commit()
+            print(newproductstats)
+            return redirect('/showproductstatus')
+        except Exception as e:
+            mysqlconn.rollback()
+            alchemy_session.rollback()
+            session['alerts'] = 'you are not allowed to create new product status.' + str(e)
+            return redirect('/showproductstatus')
     else:
         mysqlcursor.execute(
             "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[

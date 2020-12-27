@@ -131,7 +131,7 @@ class RecipeMaster(Base):
     __tablename__ = 'recipe_master'
     
     id = Column(Integer, Sequence(__tablename__ + '_seq'), primary_key=True)
-    name = Column(String(256), nullable=False)
+    name = Column(String(256), nullable=False, unique=True)
     detail = Column(String(1024), nullable=True)
 
     # target_product

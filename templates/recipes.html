@@ -1,0 +1,43 @@
+{% extends "main.html" %}
+{% block content %}
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+	<br />
+	<h1 class="page-header">List of Recipes</h1>
+	<hr style="border-color: black;">
+	{% if alert %}
+	<div class="alert alert-info alert-dismissible" role="alert">
+		<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+		<strong>Heads, up!</strong> {{ alert }}
+	</div>
+	{% endif %}
+	<div class="table-responsive">
+		<table class="table table-striped">
+			<thead>
+				<tr>
+					<th>id</th>
+					<th>name</th>
+					<th>detail</th>
+					<th>product_id</th>
+					<th>item_list_in_json</th>
+					<th>time_created</th>
+					<th>time_updated</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for recipe in recipes%}
+				<tr onclick="document.location = '{{ url_for('updaterecipe', recipe_id=recipe.id)}}';">
+					<td>{{recipe.id}}</td>
+					<td>{{recipe.name}}</td>
+					<td>{{recipe.detail}}</td>
+					<td>{{recipe.product_id}}</td>
+					<td>{{recipe.item_list_in_json}}</td>
+					<td>{{recipe.time_created}}</td>
+					<td>{{recipe.time_updated}}</td>
+				</tr>
+				{% endfor %}
+
+			</tbody>
+		</table>
+	</div>
+</div>
+{% endblock %}
