@@ -347,7 +347,7 @@ def products():
     else:
         alert = None
 
-    str_query = 'SELECT A.id, A.name, B.stock FROM erp.product_master A left join erp.product_stock_master B on A.id = B.product_id'
+    str_query = 'SELECT A.id, A.name, A.time_created, B.stock FROM erp.product_master A left join erp.product_stock_master B on A.id = B.product_id'
     str_query += ' order by A.id asc'
     print(str_query)
     mysqlcursor.execute(str_query)
@@ -433,8 +433,8 @@ def profiles():
     if "admin" not in data:
         return "you don't have access to this cause you're not an admin."
     mysqlcursor.execute("SELECT * FROM erp.profile")
-    data = mysqlcursor.fetchall()
-    return render_template("profiles.html", data=data)
+    profiles = mysqlcursor.fetchall()
+    return render_template("profiles.html", data=data, profiles=profiles)
 
 
 @app.route('/logout')
