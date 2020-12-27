@@ -374,7 +374,7 @@ def items():
     else:
         alert = None
 
-    str_query = 'SELECT A.id, A.name, A.time_created, A.time_updated, B.stock FROM erp.item_master A left join erp.item_stock_master B on A.id = B.item_id'
+    str_query = 'SELECT A.id, A.name, A.time_created, B.time_updated, B.stock FROM erp.item_master A left join erp.item_stock_master B on A.id = B.item_id'
     str_query += ' order by A.id asc'
     mysqlcursor.execute(str_query)
     items = mysqlcursor.fetchall()
@@ -475,15 +475,21 @@ def newproduct():
         productname = request.form.get('productname')
         stock = request.form.get('InputStock')
 
-        newproduct = ProductMaster(id=str(uuid_url64()), name=productname)
-        alchemy_session.add(newproduct)
-        alchemy_session.commit()
+        try:
+            newproduct = ProductMaster(id=str(uuid_url64()), name=productname)
+            alchemy_session.add(newproduct)
+            alchemy_session.commit()
 
-        newproductstock = ProductStockMaster(product=newproduct, stock=stock)
-        alchemy_session.add(newproductstock)
-        alchemy_session.commit()
+            newproductstock = ProductStockMaster(product=newproduct, stock=stock)
+            alchemy_session.add(newproductstock)
+            alchemy_session.commit()
 
-        mysqlconn.commit()
+            mysqlconn.commit()
+        except Exception as e:
+            mysqlconn.rollback()
+            alchemy_session.rollback()
+            session['alerts'] = 'you are not allowed to create new product.' + str(e)
+            return redirect('/newproduct')
 
         return redirect('/products')
     else:

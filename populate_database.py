@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from database_setup import Base, User, Profile, FacilityMaster, ProductMaster, ProductStockMaster, ItemMaster, ItemStockMaster, RecipeMaster, LoginHistory, uuid_url64, ActiveLoginSession, uuid_url64
+from database_setup import Base, User, Profile, FacilityMaster, ProductMaster, ProductStockMaster, ItemMaster, ItemStockMaster, RecipeMaster, LoginHistory, uuid_url64, ActiveLoginSession
 
 engine = create_engine('mysql://dbms:justanothersecret@localhost/erp?charset=utf8', convert_unicode=False)
 # Bind the engine to the metadata of the Base class so that the
@@ -48,7 +48,7 @@ session.add(facility1)
 session.commit()
 
 # Create dummy product
-product1 = ProductMaster(id="prod_1", name="prod_1")
+product1 = ProductMaster(id=str(uuid_url64()), name="prod_1")
 session.add(product1)
 session.commit()
 
