@@ -347,7 +347,12 @@ def products():
     else:
         alert = None
 
-    products = alchemy_session.query(ProductMaster).all()
+    str_query = 'SELECT A.id, A.name, B.stock FROM erp.product_master A join erp.product_stock_master B on A.id = B.product_id'
+    str_query += ' order by A.id asc'
+    print(str_query)
+    mysqlcursor.execute(str_query)
+    products = mysqlcursor.fetchall()
+
     return render_template("products.html", data=data, alert=alert, products=products)
 
 
@@ -364,11 +369,19 @@ def items():
         return abort(404)
     if 'alerts' in session:
         alert = session['alerts']
+        # print('alert : ', alert)
         session.pop('alerts')
     else:
         alert = None
 
-    items = alchemy_session.query(ItemMaster).all()
+    str_query = 'SELECT A.id, A.name, A.time_created, A.time_updated, B.stock FROM erp.item_master A join erp.item_stock_master B on A.id = B.item_id'
+    str_query += ' order by A.id asc'
+    mysqlcursor.execute(str_query)
+    items = mysqlcursor.fetchall()
+    # for row in items:
+    #     print(row[0], row[1], row[2])
+    print('alert : ', alert)
+
     return render_template("items.html", data=data, items=items, alert=alert)
 
 
@@ -450,6 +463,32 @@ def settings():
         alert = None
     return render_template('settings.html', data=data, alert=alert)
 
+@app.route('/newproduct', methods=['GET', 'POST'])
+def newproduct():
+    if 'username' not in session:
+        return redirect('/')
+
+    if request.method == "POST":
+        # for key in request.form:
+        # 	print(key)
+
+        in_product = request.form.get('products')
+
+        return redirect('/showproductstatus')
+    else:
+        mysqlcursor.execute(
+            "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
+                'username'] + "\" and user.username = profile.username")
+        data = mysqlcursor.fetchone()
+        if data is None:
+            return abort(404)
+        if 'alerts' in session:
+            alert = session['alerts']
+            session.pop('alerts')
+        else:
+            alert = None
+
+        return render_template('newproduct.html', data=data, alert=alert)
 
 @app.route('/addproduct', methods=['GET', 'POST'])
 def addproduct():
@@ -505,38 +544,47 @@ def addproduct():
         return render_template('addproduct.html', data=data, alert=alert, products=products, users=users,
                                recipes=recipes, facilities=facilities)
 
-@app.route('/additem', methods=['GET', 'POST'])
-def additem():
+@app.route('/newitem', methods=['GET', 'POST'])
+def newitem():
     if 'username' not in session:
         return redirect('/')
 
+    mysqlcursor.execute(
+        "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
+            'username'] + "\" and user.username = profile.username")
+    data = mysqlcursor.fetchone()
+    if data is None:
+        return abort(404)
+    if 'alerts' in session:
+        alert = session['alerts']
+        session.pop('alerts')
+    else:
+        alert = None
+    
     if request.method == "POST":
         in_item = request.form.get('itemname')
         in_user = request.form.get('users')
+        in_quantity = request.form.get('quantity')
+        # print(in_item, in_user)
 
-        user = alchemy_session.query(User).filter_by(username=in_user).one()
-        newitem = ItemMaster(name=in_item,user=user)
-        alchemy_session.add(newitem)
-        alchemy_session.commit()
-        itemstock = ItemStockMaster(item=newitem, stock=100)
-        alchemy_session.add(itemstock)
-        alchemy_session.commit()
-        return redirect('/items')
+        try:
+            user = alchemy_session.query(User).filter_by(username=in_user).one()
+            newitem = ItemMaster(name=in_item,user=user)
+            alchemy_session.add(newitem)
+            alchemy_session.commit()
+            itemstock = ItemStockMaster(item=newitem, stock=int(in_quantity))
+            alchemy_session.add(itemstock)
+            alchemy_session.commit()
+            mysqlconn.commit()
+            return redirect('/items')
+        except Exception as e:
+            mysqlconn.rollback()
+            alchemy_session.rollback()
+            session['alerts'] = 'you are not allowed to create new item.' + str(e)
+            return redirect('/items')
     else:
-        mysqlcursor.execute(
-            "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
-                'username'] + "\" and user.username = profile.username")
-        data = mysqlcursor.fetchone()
-        if data is None:
-            return abort(404)
-        if 'alerts' in session:
-            alert = session['alerts']
-            session.pop('alerts')
-        else:
-            alert = None
-
         users = alchemy_session.query(User).all()
-        return render_template('additem.html', data=data, alert=alert, users=users)
+        return render_template('newitem.html', data=data, alert=alert, users=users)
 
 @app.route('/showproductstatus', methods=['GET', 'POST'])
 def showproductstatus():
@@ -557,7 +605,7 @@ def showproductstatus():
         else:
             alert = None
 
-        productstatuses = alchemy_session.query(ProductStatusMaster).all()
+        productstatuses = alchemy_session.query(ProductStatusMaster).order_by(ProductStatusMaster.created_date.desc()).all()
         return render_template('showproductstatus.html', data=data, alert=alert, productstatuses=productstatuses)
     else:
 
@@ -605,8 +653,12 @@ def updateproductstatus(productstatus_id):
         # print('is_cancel_commit : ', is_cancel_commit)
 
         if is_commit == 'True':
+            from datetime import datetime
+            today = datetime.now()    
+
             str_query = 'update ' + str(ProductStatusMaster.__tablename__)
             str_query += ' set status = \'Finished\''
+            str_query += ', time_updated = \'' + today.strftime('%Y-%m-%dT%H:%M') + '\''            
             str_query += ' where id = ' + str(productstatus_id)
             mysqlcursor.execute(str_query)
             mysqlconn.commit()
@@ -618,17 +670,26 @@ def updateproductstatus(productstatus_id):
             stock = int(productstock.stock) + int(productstatus.quantity)
             print('new stock : ', stock)
 
+            from datetime import datetime
+            today = datetime.now()
+
             str_query = 'update ' + str(ProductStockMaster.__tablename__)
             str_query += ' set stock = ' + str(stock)
+            str_query += ', time_updated = \'' + today.strftime('%Y-%m-%dT%H:%M') + '\''
             str_query += ' where id = ' + str(productstock.id)
+            print(str_query)
             mysqlcursor.execute(str_query)
             mysqlconn.commit()
 
             return redirect('/showproductstatus')
 
         if is_cancel_commit == 'True':
+            from datetime import datetime
+            today = datetime.now()
+            
             str_query = 'update ' + str(ProductStatusMaster.__tablename__)
             str_query += ' set status = \'OnGoing\''
+            str_query += ', time_updated = \'' + today.strftime('%Y-%m-%dT%H:%M') + '\''
             str_query += ' where id = ' + str(productstatus_id)
             mysqlcursor.execute(str_query)
             mysqlconn.commit()
@@ -640,8 +701,12 @@ def updateproductstatus(productstatus_id):
             stock = int(productstock.stock) - int(productstatus.quantity)
             print('new stock : ', stock)
 
+            from datetime import datetime
+            today = datetime.now()
+
             str_query = 'update ' + str(ProductStockMaster.__tablename__)
             str_query += ' set stock = ' + str(stock)
+            str_query += ', time_updated = \'' + today.strftime('%Y-%m-%dT%H:%M') + '\''
             str_query += ' where id = ' + str(productstock.id)
             mysqlcursor.execute(str_query)
             mysqlconn.commit()
@@ -650,12 +715,16 @@ def updateproductstatus(productstatus_id):
 
         productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
         if productstatus.status == 'Finished':
-            productstatuses = alchemy_session.query(ProductStatusMaster).all()
+            productstatuses = alchemy_session.query(ProductStatusMaster).order_by(ProductStatusMaster.created_date.desc()).all()
             alert = 'you are not allowed to upate the product status record ' + str(productstatus.id) + ' because is has been committed.'
             return render_template('showproductstatus.html', data=data, alert=alert, productstatuses=productstatuses)
-        else:    
+        else:
+            from datetime import datetime
+            today = datetime.now()
+            
             str_query = 'update ' + str(ProductStatusMaster.__tablename__)
             str_query += ' set quantity = ' + str(quantity)
+            str_query += ', time_updated = \'' + today.strftime('%Y-%m-%dT%H:%M') + '\''
             str_query += ' where id = ' + str(productstatus.id)
             print(str_query)
             mysqlcursor.execute(str_query)
@@ -689,8 +758,12 @@ def updateitemstock(item_id):
         # 	print(key)
         quantity = request.form.get('quantity')
 
+        from datetime import datetime
+        today = datetime.now()
+        
         str_query = 'update ' + str(ItemStockMaster.__tablename__)
         str_query += ' set stock = ' + str(quantity)
+        str_query += ', time_updated = \'' + today.strftime('%Y-%m-%dT%H:%M') + '\''
         str_query += ' where item_id = ' + str(item_id)
         print(str_query)
         mysqlcursor.execute(str_query)
@@ -716,10 +789,9 @@ def showproductstock():
         else:
             alert = None
 
-        productstocks = alchemy_session.query(ProductStockMaster).all()
+        productstocks = alchemy_session.query(ProductStockMaster).order_by(ProductStockMaster.time_created.desc()).all()
         return render_template('showproductstock.html', data=data, alert=alert, productstocks=productstocks)
     else:
-
         return 'hello world'
 
 

@@ -2,7 +2,7 @@
 {% block content %}
 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
 	<br />
-	<h1 class="page-header">Add Item</h1>
+	<h1 class="page-header">New Item</h1>
 	<hr style="border-color: black;">
 	{% if alert %}
 	<div class="alert alert-info alert-dismissible" role="alert">
@@ -11,18 +11,22 @@
 	</div>
 	{% endif %}
 	<div class="row">
-		<form class="form-signin" action="/additem" method="POST">
+		<form class="form-signin" action="/newitem" method="POST">
 			<h3 class="form-signin-heading" id="center">Item Name</h3>
-			<label for="itemname"></label>
+			<label for="itemname" class="sr-only"></label>
 			<input type ="text" class="form-control" maxlength="100" name="itemname">
 
-			<h3 class="form-signin-heading" id="center">Select User in charge</h3>
+			<h3 class="form-signin-heading" id="center">Created User</h3>
 			<label for="inputUser" class="sr-only"></label>
 			<select name="users" id="inputUser">
 			{% for user in users%}
 				<option value={{user.username}}>{{user.username}}</option>
 			{% endfor %}
 			</select>
+
+			<h3 class="form-signin-heading" id="center">Quantity</h3>
+			<label for="InputQuantity" class="sr-only"></label>
+			<input type="number" id="InputQuantity" name="quantity">
 
 			<br/>
 			<h3 class="form-signin-heading"></h3>

@@ -10,13 +10,15 @@
 				<tr>
 					<th>id</th>
 					<th>name</th>
+					<th>stock</th>
 				</tr>
 			</thead>
 			<tbody>
 				{% for i in products%}
 				<tr>
-					<td>{{i.id}}</td>
-					<td>{{i.name}}</td>
+					<td>{{i[0]}}</td>
+					<td>{{i[1]}}</td>
+					<td>{{i[2]}}</td>
 				</tr>
 				{% endfor %}
 

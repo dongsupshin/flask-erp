@@ -4,19 +4,31 @@
 	<br />
 	<h1 class="page-header">List of Items</h1>
 	<hr style="border-color: black;">
+	{% if alert %}
+	<div class="alert alert-info alert-dismissible" role="alert">
+		<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+		<strong>Heads, up!</strong> {{ alert }}
+	</div>
+	{% endif %}
 	<div class="table-responsive">
 		<table class="table table-striped">
 			<thead>
 				<tr>
 					<th>id</th>
 					<th>name</th>
+					<th>time_created</th>
+					<th>time_updated</th>
+					<th>stock</th>
 				</tr>
 			</thead>
 			<tbody>
 				{% for item in items%}
-				<tr onclick="document.location = '{{ url_for('updateitemstock', item_id=item.id)}}';">
-					<td>{{item.id}}</td>
-					<td>{{item.name}}</td>
+				<tr onclick="document.location = '{{ url_for('updateitemstock', item_id=item[0])}}';">
+					<td>{{item[0]}}</td>
+					<td>{{item[1]}}</td>
+					<td>{{item[2]}}</td>
+					<td>{{item[3]}}</td>
+					<td>{{item[4]}}</td>
 				</tr>
 				{% endfor %}
 
