@@ -52,7 +52,7 @@ class ProductMaster(Base):
     __tablename__ = 'product_master'
     
     id = Column(String(256), primary_key=True)
-    name = Column(String(256), nullable=False)
+    name = Column(String(256), nullable=False, unique=True)
 
     time_created = Column(DateTime(timezone=True), server_default=func.now())
     time_updated = Column(DateTime(timezone=True), onupdate=func.now())

@@ -347,7 +347,7 @@ def products():
     else:
         alert = None
 
-    str_query = 'SELECT A.id, A.name, B.stock FROM erp.product_master A join erp.product_stock_master B on A.id = B.product_id'
+    str_query = 'SELECT A.id, A.name, B.stock FROM erp.product_master A left join erp.product_stock_master B on A.id = B.product_id'
     str_query += ' order by A.id asc'
     print(str_query)
     mysqlcursor.execute(str_query)
@@ -374,7 +374,7 @@ def items():
     else:
         alert = None
 
-    str_query = 'SELECT A.id, A.name, A.time_created, A.time_updated, B.stock FROM erp.item_master A join erp.item_stock_master B on A.id = B.item_id'
+    str_query = 'SELECT A.id, A.name, A.time_created, A.time_updated, B.stock FROM erp.item_master A left join erp.item_stock_master B on A.id = B.item_id'
     str_query += ' order by A.id asc'
     mysqlcursor.execute(str_query)
     items = mysqlcursor.fetchall()
@@ -472,9 +472,20 @@ def newproduct():
         # for key in request.form:
         # 	print(key)
 
-        in_product = request.form.get('products')
+        productname = request.form.get('productname')
+        stock = request.form.get('InputStock')
 
-        return redirect('/showproductstatus')
+        newproduct = ProductMaster(id=str(uuid_url64()), name=productname)
+        alchemy_session.add(newproduct)
+        alchemy_session.commit()
+
+        newproductstock = ProductStockMaster(product=newproduct, stock=stock)
+        alchemy_session.add(newproductstock)
+        alchemy_session.commit()
+
+        mysqlconn.commit()
+
+        return redirect('/products')
     else:
         mysqlcursor.execute(
             "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
