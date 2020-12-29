@@ -30,7 +30,7 @@
 
 			<h3 class="form-signin-heading" id="center">Select Recipe to add product</h3>
 			<label for="inputRecipe" class="sr-only">Select Recipe to add product</label>
-			<select name="recipes" id="inputRecipe">
+			<select name="recipe" id="inputRecipe">
 			{% for recipe in recipes%}
 				<option value={{recipe.id}}>{{recipe.name}}</option>
 			{% endfor %}
@@ -57,7 +57,7 @@
 
 			<h3 class="form-signin-heading" id="center">Select Created Datetime</h3>
 			<label for="createddatetime"></label>
-			<input type="datetime-local" id="createddatetime" name="in_createddatetime">
+			<input type="datetime-local" id="createddatetime" name="createddatetime">
 			<p><strong>Note:</strong> type="datetime-local" is not supported in Firefox, Safari or Internet Explorer 12 (or earlier).</p>
 
 			<br/>

@@ -81,27 +81,6 @@ class ProductStockMaster(Base):
     time_created = Column(DateTime(timezone=True), server_default=func.now())
     time_updated = Column(DateTime(timezone=True), onupdate=func.now())
 
-class ProductStatusMaster(Base):
-    __tablename__ = 'product_status_master'
-    
-    id = Column(Integer, Sequence(__tablename__ + '_seq'), primary_key=True)
-    product = relationship(ProductMaster)
-    product_id = Column(String(256), ForeignKey('product_master.id'))
-
-    status = Column(mysql.ENUM('Idle','OnGoing','Finished'), nullable=False, default='Idle')
-
-    created_date = Column(DateTime(timezone=True), server_default=func.now()) # 제조일자
-    target_quantity = Column(Integer, nullable=False)
-    quantity = Column(Integer, nullable=False)
-    unit = Column(mysql.ENUM('kg','lb'), nullable=False, default='kg')
-    user = relationship(User)
-    person_in_charge = Column(String(256), ForeignKey('user.username'))
-    facility = relationship(FacilityMaster)
-    facility_id = Column(String(256), ForeignKey('facility_master.id'))
-
-    time_created = Column(DateTime(timezone=True), server_default=func.now())
-    time_updated = Column(DateTime(timezone=True), onupdate=func.now())
-
 class ItemMaster(Base):
     __tablename__ = 'item_master'
     
@@ -140,6 +119,30 @@ class RecipeMaster(Base):
 
     # required_items_to_create_product
     item_list_in_json = Column(String(1024), nullable=True) # ['item1_id':3]
+
+    time_created = Column(DateTime(timezone=True), server_default=func.now())
+    time_updated = Column(DateTime(timezone=True), onupdate=func.now())
+
+class ProductStatusMaster(Base):
+    __tablename__ = 'product_status_master'
+    
+    id = Column(Integer, Sequence(__tablename__ + '_seq'), primary_key=True)
+    product = relationship(ProductMaster)
+    product_id = Column(String(256), ForeignKey('product_master.id'))
+
+    recipe = relationship(RecipeMaster)
+    recipe_id = Column(Integer, ForeignKey('recipe_master.id'))
+
+    status = Column(mysql.ENUM('Idle','OnGoing','Finished'), nullable=False, default='Idle')
+
+    created_date = Column(DateTime(timezone=True), server_default=func.now()) # 제조일자
+    target_quantity = Column(Integer, nullable=False)
+    quantity = Column(Integer, nullable=False)
+    unit = Column(mysql.ENUM('kg','lb'), nullable=False, default='kg')
+    user = relationship(User)
+    person_in_charge = Column(String(256), ForeignKey('user.username'))
+    facility = relationship(FacilityMaster)
+    facility_id = Column(String(256), ForeignKey('facility_master.id'))
 
     time_created = Column(DateTime(timezone=True), server_default=func.now())
     time_updated = Column(DateTime(timezone=True), onupdate=func.now())

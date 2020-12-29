@@ -122,17 +122,16 @@
 				items_quantity_list.push(iteminfo);
 			}
 
+			console.log('items_quantity_list : ', items_quantity_list);
+
 			var items_quantity_json = JSON.stringify(items_quantity_list);
-			console.log(items_quantity_json);
-			console.log(items_quantity_json.substring(1,items_quantity_json.length-1));
+			console.log('items_quantity_json : ', items_quantity_json);
 
 			$.ajax({
 				type : 'POST',
 				url : $(location).attr('href'),
-				// data : {'data' : items_quantity_json},
-				data : items_quantity_json,
 				contentType: 'application/json;charset=UTF-8',
-				// dataType : 'JSON',
+				data : items_quantity_json,
 				success : function(result){
 						alert("result = "+ result);
 						location.reload(true);
