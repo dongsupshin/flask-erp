@@ -329,7 +329,7 @@ def login():
         alchemy_session.add(new_login_session)
         alchemy_session.commit()
         session['token'] = new_login_session.token
-        print('session[\'token\'] ', session['token'], ' has been created.')
+        print('session[\'token\']', session['token'], 'has been created.')
 
         return redirect('/dashboard')
 
@@ -459,6 +459,26 @@ def loginhistory():
 
     loginhistories = alchemy_session.query(LoginHistory).order_by(desc(LoginHistory.login_time))
     return render_template("loginhistory.html", data=data, alert=alert, loginhistories=loginhistories)
+
+@app.route('/activeloginsession')
+def activeloginsession():
+    if 'username' not in session:
+        return redirect('/')
+
+    mysqlcursor.execute(
+        "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
+            'username'] + "\" and user.username = profile.username")
+    data = mysqlcursor.fetchone()
+    if data is None:
+        return abort(404)
+    if 'alerts' in session:
+        alert = session['alerts']
+        session.pop('alerts')
+    else:
+        alert = None
+
+    activesessions = alchemy_session.query(ActiveLoginSession).all()
+    return render_template("activeloginsession.html", data=data, alert=alert, activesessions=activesessions)
 
 @app.route('/profiles')
 def profiles():

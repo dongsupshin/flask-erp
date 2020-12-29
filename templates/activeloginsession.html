@@ -1,0 +1,29 @@
+{% extends "main.html" %}
+{% block content %}
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+	<br />
+	<h1 class="page-header">Active Login Session</h1>
+	<hr style="border-color: black;">
+	<div class="table-responsive">
+		<table class="table table-striped">
+			<thead>
+				<tr>
+					<th>id</th>
+					<th>username</th>
+					<th>updated_date</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for i in activesessions%}
+				<tr>
+					<td>{{i.id}}</td>
+					<td>{{i.username}}</td>
+					<td>{{i.updated_date}}</td>
+				</tr>
+				{% endfor %}
+
+			</tbody>
+		</table>
+	</div>
+</div>
+{% endblock %}
