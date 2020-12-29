@@ -150,7 +150,7 @@ class ProductStatusMaster(Base):
 class ActiveLoginSession(Base):
     __tablename__ = 'active_login_session'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, Sequence(__tablename__ + '_seq'), primary_key=True)
     user = relationship(User)
     username = Column(String(256), ForeignKey('user.username'), nullable=True)
     token = Column(String(256), nullable=False, unique=True)

@@ -85,30 +85,23 @@ def before_request():
         loginhistory = LoginHistory(id=str(uuid_url64()), user=user, request_url=request.url, remote_address=request.remote_addr)
         alchemy_session.add(loginhistory)
         alchemy_session.commit()
-        # create login active session
-        activeloginsession = ActiveLoginSession(user=user, token=str(uuid_url64()))
-        alchemy_session.add(activeloginsession)
-        alchemy_session.commit()
-        session['token'] = activeloginsession.token
+        # update login active session
+        session['last_active'] = now
+        if ('token' in key_list) == True:
+            str_query = 'update ' + str(ActiveLoginSession.__tablename__)
+            str_query += ' set updated_date = \'' + str(session['last_active']) + '\'' # .strftime('%Y-%m-%dT%H:%M')
+            str_query += ' where token = \'' + str(session['token']) + '\''
+            print(str_query)
+            mysqlcursor.execute(str_query)
+            mysqlconn.commit()
     except Exception as e:
+        mysqlconn.rollback()
+        alchemy_session.rollback()
         msg = str(e)
         logging.error(msg)
+        print(msg)
         return
-
     
-    if ('token' in key_list) == True:
-        try:
-            active_session_object = alchemy_session.query(ActiveLoginSession).filter_by(token=session['token']).one()
-            active_session_object.updated_date = session['last_active']
-            alchemy_session.add(active_session_object)
-            alchemy_session.commit()
-        except Exception as e:
-            msg = str(e)
-            logging.error(msg)
-            return redirect('/login')
-    else:
-        return
-
     # check session expiration
     try:
         last_active = session['last_active']
@@ -308,6 +301,10 @@ def login():
         return redirect('/dashboard')
     username = request.form.get('username')
     password = request.form.get('password')
+
+    if username is None or password is None:
+        return render_template('wrong-login.html')
+        
     mysqlcursor.execute("SELECT * FROM user where username='" + username + "' and password='" + password + "'")
     data = mysqlcursor.fetchone()
     if data is None:
@@ -316,6 +313,24 @@ def login():
         session['username'] = username
         session['type'] = data[2]
         print(session['username'], session['type'])
+
+        user = alchemy_session.query(User).filter_by(username=username).one()
+
+        try:
+            older_login_session = alchemy_session.query(ActiveLoginSession).filter_by(user=user).all()
+            for old in older_login_session:
+                alchemy_session.delete(old)
+                alchemy_session.commit()
+        except Exception as e:
+            logging.error(str(e))
+            print(str(e))
+
+        new_login_session = ActiveLoginSession(user=user, token=str(uuid_url64()))
+        alchemy_session.add(new_login_session)
+        alchemy_session.commit()
+        session['token'] = new_login_session.token
+        print('session[\'token\'] ', session['token'], ' has been created.')
+
         return redirect('/dashboard')
 
 
