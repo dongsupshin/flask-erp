@@ -37,9 +37,114 @@
 			</table>
 	</div>
 
+	<h3 class="form-signin-heading" id="center">Item :</h3>
+	<label for="inputItem" class="sr-only"></label>
+	<select name="item" id="inputItem">
+	{% for item in items%}
+		<option value={{item.name}}>{{item.name}}</option>
+	{% endfor %}
+	</select>
+
+	<h3 class="form-signin-heading" id="center">Quantity</h3>
+	<label for="InputQuantity" class="sr-only"></label>
+	<input type="number" id="InputQuantity" name="quantity" value=0>
+
+	<button class="btn btn-primary" type="button" onclick="addItem()">Add Item</button>
+
+	<button class="btn btn-primary" type="button" onclick="updateItems({{recipe.id}})">
+		Update
+	</button>
+	
 	<button class="btn btn-primary" type="button" onclick="document.location = '{{ url_for('recipes')}}';">
 		Previous
 	</button>
+	
+	<ul id="items_to_add">
+	</ul>
+	
+	<script>
+		
+		function addItem() {
+			var items = [];
 
+			var length = document.getElementById("items_to_add").getElementsByTagName("li").length;
+			var result = document.getElementById("items_to_add").getElementsByTagName("li");
+
+			for(var i = 0; i < length; i++){
+				var item = result[i].outerText.split(',')[0];
+				items.push(item);
+			}
+
+			var list = document.getElementById('items_to_add');
+			var item_value = document.getElementById("inputItem").value;
+			var quantity_value = document.getElementById("InputQuantity").value;
+
+			if (items.indexOf(item_value)==-1){
+				var entry = document.createElement('li');
+				entry.appendChild(document.createTextNode(item_value));
+				entry.appendChild(document.createTextNode(","));
+				entry.appendChild(document.createTextNode(quantity_value));
+				list.appendChild(entry);
+				// We add the inserted name in the array for later checks.
+				items.push(item_value);
+			}
+			else{
+				// Create a new <li> element
+				var elmnt = document.createElement("li");
+
+				// Create a new text node called "Water"
+				var item_value_node = document.createTextNode(item_value);
+				var comma_node = document.createTextNode(",");
+				var quantity_value_node = document.createTextNode(quantity_value);
+
+				// Append the text node to <li>
+				elmnt.appendChild(item_value_node);
+				elmnt.appendChild(comma_node);
+				elmnt.appendChild(quantity_value_node);
+
+				// Replace the first child node (<li> with index 0) in <ul> with the newly created <li> element
+				var index = items.indexOf(item_value);
+				list.replaceChild(elmnt, list.childNodes[index+1]);
+			}
+		}
+			
+	</script>
+	<script>
+		function updateItems(recipe_id) {			
+			var length = document.getElementById("items_to_add").getElementsByTagName("li").length;
+			var result = document.getElementById("items_to_add").getElementsByTagName("li");
+			var items_quantity_list = [];
+
+			for(var i = 0; i < length; i++){
+				var iteminfo = new Object();
+				iteminfo.item = result[i].outerText.split(',')[0];
+				iteminfo.quantity = result[i].outerText.split(',')[1];
+				items_quantity_list.push(iteminfo);
+			}
+
+			var items_quantity_json = JSON.stringify(items_quantity_list);
+			console.log(items_quantity_json);
+			console.log(items_quantity_json.substring(1,items_quantity_json.length-1));
+
+			$.ajax({
+				type : 'POST',
+				url : $(location).attr('href'),
+				// data : {'data' : items_quantity_json},
+				data : items_quantity_json,
+				contentType: 'application/json;charset=UTF-8',
+				// dataType : 'JSON',
+				success : function(result){
+						alert("result = "+ result);
+						location.reload(true);
+				},
+				error : function(xtr,status,error){
+						alert(xtr +":"+status+":"+error);
+						location.reload(true);
+				}
+			});
+
+		}
+	</script>
 </div>
+
 {% endblock %}

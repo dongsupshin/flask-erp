@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, session, abort, url
 from flaskext.mysql import MySQL
 from sqlalchemy import asc, desc
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql.sqltypes import String
 from database_setup import Base, engine, User, Profile, FacilityMaster, ProductMaster, ProductStockMaster, ItemMaster, \
     ItemStockMaster, RecipeMaster, ProductStatusMaster, ActiveLoginSession, uuid_url64, LoginHistory
 from flask_bootstrap import Bootstrap
@@ -532,7 +533,23 @@ def updaterecipe(recipe_id):
         return redirect('/')
 
     if request.method == "POST":
-        return 'success'
+        from datetime import datetime
+        today = datetime.now()
+
+        str_query = 'update ' + str(RecipeMaster.__tablename__)
+        str_query += ' set item_list_in_json = \'' + str(request.json).replace('\'', '\'\'')[1:-1] + '\''
+        str_query += ', time_updated = \'' + today.strftime('%Y-%m-%dT%H:%M') + '\''            
+        str_query += ' where id = ' + str(recipe_id)
+        print(str_query)
+        try:
+            mysqlcursor.execute(str_query)
+            mysqlconn.commit()
+            return 'success'
+        except Exception as e:
+            mysqlconn.rollback()
+            alchemy_session.rollback()
+            session['alerts'] = 'you are not allowed to update item_list_in_json.' + str(e)
+            return str(e)
     else:
         mysqlcursor.execute(
             "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
@@ -547,7 +564,8 @@ def updaterecipe(recipe_id):
             alert = None
         
         recipe = alchemy_session.query(RecipeMaster).filter_by(id=recipe_id).one()
-        return render_template('updaterecipe.html', data=data, alert=alert, recipe=recipe)
+        items = alchemy_session.query(ItemMaster).all()
+        return render_template('updaterecipe.html', data=data, alert=alert, recipe=recipe, items=items)
 
 @app.route('/newproduct', methods=['GET', 'POST'])
 def newproduct():
