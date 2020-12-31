@@ -22,24 +22,12 @@
 					<span class="icon-bar"></span>
 					<span class="icon-bar"></span>
 				</button>
-				<a class="navbar-brand" href="/">Flask-ERP</a>
+				<a class="navbar-brand" href="/dashboard">Flask-ERP</a>
 			</div>
 			<div id="navbar" class="navbar-collapse collapse">
 				<ul class="nav navbar-nav navbar-right">
 					<li><a href="/dashboard">Dashboard</a></li>
-					<!-- <li><a href="/profiles">Profiles</a></li> -->
 					<li><a href="/settings">Settings</a></li>
-					<!-- <li><a href="/products">Products</a></li>
-					<li><a href="/newproduct">New Product</a></li>
-					<li><a href="/addproduct">Add Product</a></li>
-					<li><a href="/showproductstatus">Show Product Status</a></li>
-					<li><a href="/showproductstock">Show Product Stock</a></li>
-					<li><a href="/items">Items</a></li>
-					<li><a href="/newitem">New Item</a></li>
-					<li><a href="/recipes">Recipes</a></li>
-					<li><a href="/newrecipe">New Recipe</a></li>
-					<li><a href="/filelist">File List</a></li>
-					<li><a href="/loginhistory">Login History</a></li> -->
 					<li><a href="/help">Help</a></li>
 					<li><a href="/logout">Logout</a></li>
 				</ul>
@@ -53,11 +41,11 @@
 				<h3>Hi, {{data[0]}}</h3>
 				<h4>Account type: {{ session['type'] }}</h4><br />
 				<ul class="nav nav-sidebar">
-					<li class="active"><a href="/">Overview <span class="sr-only">(current)</span></a></li>
+					<li class="active"><a href="/dashboard">Overview <span class="sr-only">(current)</span></a></li>
 					{% if session['type']|string() == "admin" %}
 					<li><a href="/admin/users">Users</a></li>
 					{% endif %}
-					<li ><a href="/profiles">profiles</a></li>
+					<li><a href="/profiles">profiles</a></li>
 					<li><a href="/settings">Settings</a></li>
 					<li><a href="/products">Products</a></li>
 					<li><a href="/newproduct">New Product</a></li>
@@ -89,27 +77,55 @@
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
 	<script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
 
-	<!-- [TBD] active class gets referesh -->
+	<script>
+		$('.navbar-brand').click(function(e) {
+			var h = $(this).attr('href');
+
+			// Check browser support
+			if (typeof(Storage) !== "undefined") {
+				// Store
+				localStorage.setItem("is_active_button", h);
+				// Retrieve
+			} else {
+				alert("Sorry, your browser does not support Web Storage...");
+			}
+
+		});
+	</script>
 	<script>
 		$('.nav li').click(function(e) {
-			console.log(e.currentTarget,"//",e.target,"//",this);
-			// localStorage.setItem('activeTab', $(e.target).attr('href'));
-
+			$('.nav.nav-sidebar').removeClass('active');
 			e.stopPropagation();
-			$('.nav li').removeClass('active');
 			$(this).addClass('active');
+			var h = $("a",this).attr('href');
+
+			// Check browser support
+			if (typeof(Storage) !== "undefined") {
+				// Store
+				localStorage.setItem("is_active_button", h);
+				// Retrieve
+			} else {
+				alert("Sorry, your browser does not support Web Storage...");
+			}
 		});
 	</script>
 
 	<script>
 		$(document).ready(function(){
-			$('a[data-toggle="tab"]').on('show.bs.tab', function(e) {
-				localStorage.setItem('activeTab', $(e.target).attr('href'));
+			var storage_href = localStorage.getItem("is_active_button");
+			
+			$('.nav.nav-sidebar li').each(function(i){
+				var classname = $(this).attr('class');
+				if(classname == 'active'){
+					$(this).removeClass('active');
+				}
+
+				var href = $(this).children('a').attr('href');
+				if(String(href) == String(storage_href)){
+					$(this).addClass('active');
+					return;
+				}
 			});
-			var activeTab = localStorage.getItem('activeTab');
-			if(activeTab){
-				$('#myTab a[href="' + activeTab + '"]').tab('show');
-			}
 		});
 	</script>
 
