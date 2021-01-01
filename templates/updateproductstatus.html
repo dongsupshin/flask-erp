@@ -43,32 +43,80 @@
 			</table>
 	</div>
 
-	<form class="form-signin" action="/updateproductstatus/{{productstatus.id}}/" method="POST">
-		<br/>
-		<h3 class="form-signin-heading" id="center">Quantity</h3>
-		<label for="InputQuantity" class="sr-only"></label>
-		<input type="number" id="InputQuantity" name="quantity">
-		<h3 class="form-signin-heading"></h3>
-		<button class="btn btn-primary btn-block" type="submit">Update</button>
-	</form>
+	<h3 class="form-signin-heading" id="center">Quantity</h3>
+	<label for="InputQuantity" class="sr-only">Quantity</label>
+	<input type="number" id="InputQuantity" name="quantity">
 
-	<form class="form-signin" action="/updateproductstatus/{{productstatus.id}}/" method="POST">
-		<h3 class="form-signin-heading"></h3>
-		<label for="IsCommitId" class="sr-only"></label>
-		<input type="hidden" id="IsCommitId" name="IsCommit" value="True">
-		<button class="btn btn-primary btn-block" type="submit">Commit</button>
-	</form>
-
-	<form class="form-signin" action="/updateproductstatus/{{productstatus.id}}/" method="POST">
-		<h3 class="form-signin-heading"></h3>
-		<label for="IsCancelCommitId" class="sr-only"></label>
-		<input type="hidden" id="IsCancelCommitId" name="IsCancelCommit" value="True">
-		<button class="btn btn-primary btn-block" type="submit">Cancel Commit</button>
-	</form>
-
-	<button class="btn btn-primary" type="button" onclick="document.location = '{{ url_for('showproductstatus')}}';">
-		Previous
-	</button>
-
+	<button class="btn btn-primary" onclick="update()">Update</button>
+	<button class="btn btn-primary" onclick="commit()">Commit</button>
+	<button class="btn btn-primary" onclick="cancelcommit()">Cancel Commit</button>
+	
+	<div>
+		<button class="btn btn-primary" type="button" onclick="document.location ='{{ url_for('showproductstatus')}}';">
+			Previous
+		</button>
+	</div>
 </div>
+<script>
+	function update(){
+		var value = document.getElementById("InputQuantity").value;
+		console.log(value);
+
+		if(value){
+			$.ajax({
+				type : 'POST',
+				url : $(location).attr('href'),
+				// contentType: 'application/json;charset=UTF-8',
+				data : {"quantity" : value},
+				success : function(result){
+						// alert("result = "+ result);
+						location.reload(true);
+				},
+				error : function(xtr,status,error){
+						alert(xtr +":"+status+":"+error);
+						location.reload(true);
+				}
+			});
+		}
+		else{
+			alert('input value is empty.');
+		}
+	}
+</script>
+<script>
+	function commit(){
+		$.ajax({
+			type : 'POST',
+			url : $(location).attr('href'),
+			// contentType: 'application/json;charset=UTF-8',
+			data : {"IsCommit" : "True"},
+			success : function(result){
+					// alert("result = "+ result);
+					location.reload(true);
+			},
+			error : function(xtr,status,error){
+					alert(xtr +":"+status+":"+error);
+					location.reload(true);
+			}
+		});
+	}
+</script>
+<script>
+	function cancelcommit(){
+		$.ajax({
+			type : 'POST',
+			url : $(location).attr('href'),
+			// contentType: 'application/json;charset=UTF-8',
+			data : {"IsCancelCommit" : "True"},
+			success : function(result){
+					// alert("result = "+ result);
+					location.reload(true);
+			},
+			error : function(xtr,status,error){
+					alert(xtr +":"+status+":"+error);
+					location.reload(true);
+			}
+		});
+	}
+</script>
 {% endblock %}
