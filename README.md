@@ -1,6 +1,5 @@
 # Flask-ERP
 ### ERP System made on Flask, web-framework for Python.
-#### Project created for CSE202-Fundamentals of Database Systems
 
 The aim is to make a Enterprise Resource Planning System using Python based web-framework
 Flask.
