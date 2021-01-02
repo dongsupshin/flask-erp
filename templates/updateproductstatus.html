@@ -16,6 +16,7 @@
 					<tr>
 						<th>id</th>
 						<th>product_id</th>
+						<th>product_name</th>
 						<th>target_quantity</th>
 						<th>quantity</th>
 						<th>unit</th>
@@ -30,6 +31,7 @@
 					<tr>
 						<td>{{productstatus.id}}</td>
 						<td>{{productstatus.product_id}}</td>
+						<td>{{productstatus.product_name}}</td>
 						<td>{{productstatus.target_quantity}}</td>
 						<td>{{productstatus.quantity}}</td>
 						<td>{{productstatus.unit}}</td>
@@ -91,12 +93,15 @@
 			// contentType: 'application/json;charset=UTF-8',
 			data : {"IsCommit" : "True"},
 			success : function(result){
-					// alert("result = "+ result);
-					location.reload(true);
+				console.log(result);
+				// alert("result = "+ result);
+				location.reload(true);
 			},
 			error : function(xtr,status,error){
-					alert(xtr +":"+status+":"+error);
-					location.reload(true);
+				console.log(xtr +":"+status+":"+error);
+				// alert(xtr +":"+status+":"+error);
+				location.reload(true);
+				// window.location.href = $(location).attr('href');
 			}
 		});
 	}
@@ -113,7 +118,7 @@
 					location.reload(true);
 			},
 			error : function(xtr,status,error){
-					alert(xtr +":"+status+":"+error);
+					// alert(xtr +":"+status+":"+error);
 					location.reload(true);
 			}
 		});

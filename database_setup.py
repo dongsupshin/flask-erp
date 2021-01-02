@@ -64,6 +64,7 @@ class ProductDetail(Base):
 
     product = relationship(ProductMaster)
     product_id = Column(String(256), ForeignKey('product_master.id'))
+    product_name = Column(String(256))
 
     time_created = Column(DateTime(timezone=True), server_default=func.now())
     time_updated = Column(DateTime(timezone=True), onupdate=func.now())
@@ -75,6 +76,7 @@ class ProductStockMaster(Base):
 
     product = relationship(ProductMaster)
     product_id = Column(String(256), ForeignKey('product_master.id'))
+    product_name = Column(String(256))
 
     stock = Column(Integer, nullable=False)
 
@@ -129,11 +131,12 @@ class ProductStatusMaster(Base):
     id = Column(Integer, Sequence(__tablename__ + '_seq'), primary_key=True)
     product = relationship(ProductMaster)
     product_id = Column(String(256), ForeignKey('product_master.id'))
+    product_name = Column(String(256))
 
     recipe = relationship(RecipeMaster)
     recipe_id = Column(Integer, ForeignKey('recipe_master.id'))
 
-    status = Column(mysql.ENUM('Idle','OnGoing','Finished'), nullable=False, default='Idle')
+    status = Column(mysql.ENUM('OnGoing','Finished'), nullable=False, default='OnGoing')
 
     created_date = Column(DateTime(timezone=True), server_default=func.now()) # 제조일자
     target_quantity = Column(Integer, nullable=False)

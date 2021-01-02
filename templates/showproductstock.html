@@ -17,6 +17,7 @@
 			<thead>
 				<tr>
 					<th>product_id</th>
+					<th>product_name</th>
 					<th>stock</th>
 				</tr>
 			</thead>
@@ -24,10 +25,10 @@
 				{% for productstock in productstocks%}
 				<tr>
 					<td>{{productstock.product_id}}</td>
+					<td>{{productstock.product_name}}</td>
 					<td>{{productstock.stock}}</td>
 				</tr>
 				{% endfor %}
-
 			</tbody>
 		</table>
 	</div>

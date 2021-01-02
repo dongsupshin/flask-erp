@@ -620,7 +620,7 @@ def newproduct():
             alchemy_session.add(newproduct)
             alchemy_session.commit()
 
-            newproductstock = ProductStockMaster(product=newproduct, stock=stock)
+            newproductstock = ProductStockMaster(product=newproduct, product_name=newproduct.name, stock=stock)
             alchemy_session.add(newproductstock)
             alchemy_session.commit()
 
@@ -675,7 +675,7 @@ def addproduct():
             product = alchemy_session.query(ProductMaster).filter_by(id=in_product).one()
             user = alchemy_session.query(User).filter_by(username=in_user).one()
             facility = alchemy_session.query(FacilityMaster).filter_by(id=in_facilities).one()
-            newproductstats = ProductStatusMaster(product=product, status="OnGoing", created_date=date_time_obj, user=user,
+            newproductstats = ProductStatusMaster(product=product, product_name=product.name, status="OnGoing", created_date=date_time_obj, user=user,
                                                 unit=in_unit, facility=facility, target_quantity=in_targetquantity,
                                                 quantity=0, recipe=recipe)
             alchemy_session.add(newproductstats)
@@ -819,7 +819,11 @@ def updateproductstatus(productstatus_id):
         if is_commit == 'True':
             if productstatus.status == 'Finished':
                 session['alerts'] = 'productstatus ' + str(productstatus.id) + ' has been already commited.'
-                return redirect('/showproductstatus')
+                return abort(404, description=session['alerts'])
+
+            if recipe.item_list_in_json is None:
+                session['alerts'] = 'recipe.item_list_in_json ' + str(recipe.id) + ' is empty.'
+                return abort(404, description=session['alerts'])
 
             from datetime import datetime
             today = datetime.now()    
@@ -893,6 +897,14 @@ def updateproductstatus(productstatus_id):
             return redirect('/showproductstatus')
 
         if is_cancel_commit == 'True':
+            if productstatus.status in ('OnGoing'):
+                session['alerts'] = 'productstatus ' + str(productstatus.id) + ' has been already canceled.'
+                return abort(404, description=session['alerts'])
+
+            if recipe.item_list_in_json is None:
+                session['alerts'] = 'recipe.item_list_in_json ' + str(recipe.id) + ' is empty.'
+                return abort(404, description=session['alerts'])
+            
             from datetime import datetime
             today = datetime.now()
             
@@ -919,7 +931,7 @@ def updateproductstatus(productstatus_id):
             str_query += ' where id = ' + str(productstock.id)
             mysqlcursor.execute(str_query)
             mysqlconn.commit()
-
+            
             import json
             item_list = json.loads(recipe.item_list_in_json)
 

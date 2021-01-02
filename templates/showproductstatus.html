@@ -11,13 +11,13 @@
 	</div>
 	{% endif %}
 
-	<!-- <h2 class="sub-header">Section title</h2> -->
 	<div class="table-responsive">
 		<table class="table table-striped">
 			<thead>
 				<tr>
 					<th>id</th>
 					<th>product_id</th>
+					<th>product_name</th>
 					<th>created_date</th>
 					<th>time_updated</th>
 					<th>target_quantity</th>
@@ -34,6 +34,7 @@
 				<tr onclick="document.location = '{{ url_for('updateproductstatus', productstatus_id=productstatus.id)}}';">
 						<td>{{productstatus.id}}</td>
 						<td>{{productstatus.product_id}}</td>
+						<td>{{productstatus.product_name}}</td>
 						<td>{{productstatus.created_date}}</td>
 						<td>{{productstatus.time_updated}}</td>
 						<td>{{productstatus.target_quantity}}</td>
