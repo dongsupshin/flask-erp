@@ -4,7 +4,7 @@ from sqlalchemy import asc, desc
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.sqltypes import String
 from database_setup import Base, engine, User, Profile, FacilityMaster, ProductMaster, ProductStockMaster, ItemMaster, \
-    ItemStockMaster, RecipeMaster, ProductStatusMaster, ActiveLoginSession, uuid_url64, LoginHistory
+    ItemStockMaster, RecipeMaster, ProductStatusMaster, ActiveLoginSession, uuid_url64, LoginHistory, Board
 from flask_bootstrap import Bootstrap
 # deprecated
 # from werkzeug import secure_filename
@@ -774,6 +774,28 @@ def showproductstatus():
 
         return 'hello world'
 
+@app.route('/showboard', methods=['GET', 'POST'])
+def showboard():
+    if 'username' not in session:
+        return redirect('/')
+
+    mysqlcursor.execute(
+        "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
+            'username'] + "\" and user.username = profile.username")
+    data = mysqlcursor.fetchone()
+
+    if request.method == "GET":
+        if data is None:
+            return abort(404)
+        if 'alerts' in session:
+            alert = session['alerts']
+            session.pop('alerts')
+        else:
+            alert = None
+            boards = alchemy_session.query(Board).all()
+            return render_template("board.html", data=data, boards=boards)
+    else:
+        return 'hello world'
 
 @app.route('/updateproductstatus/<int:productstatus_id>/', methods=['GET', 'POST'])
 def updateproductstatus(productstatus_id):

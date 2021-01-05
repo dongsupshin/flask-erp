@@ -173,6 +173,19 @@ class LoginHistory(Base):
     login_time = Column(DateTime(timezone=True), server_default=func.now())
     time_created = Column(DateTime(timezone=True), server_default=func.now())
 
+class Board(Base):
+    __tablename__ = 'board'
+
+    id = Column(String(256), primary_key=True)
+    creator = relationship(User)
+    creatorname = Column(String(256), ForeignKey('user.username'), nullable=True)
+    views = Column(Integer, nullable=False)
+    title = Column(String(256), nullable=True, default='')
+    content = Column(String(1024), nullable=True, default='')
+    
+    created_date = Column(DateTime(timezone=True), server_default=func.now())
+    updated_date = Column(DateTime(timezone=True), onupdate=func.now())
+
 engine = create_engine('mysql://dbms:justanothersecret@localhost/erp?charset=utf8', convert_unicode=False, pool_size=200, max_overflow=0)
 
 # Base.metadata.drop_all(bind=engine)
