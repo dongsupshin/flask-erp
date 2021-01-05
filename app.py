@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, session, abort, url_for, send_from_directory, flash, jsonify
 from flaskext.mysql import MySQL
-from sqlalchemy import asc, desc
+from sqlalchemy import asc, desc, join
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.sqltypes import String
 from database_setup import Base, engine, User, Profile, FacilityMaster, ProductMaster, ProductStockMaster, ItemMaster, \
@@ -13,10 +13,9 @@ from lib.upload_file import uploadfile
 from PIL import Image
 from inspect import currentframe, getframeinfo
 # print(frameinfo.filename, frameinfo.lineno)
-import sys, os, PIL, simplejson, traceback, logging
+import sys, os, PIL, simplejson, traceback, logging, datetime
 
-from datetime import datetime
-today = datetime.now()
+today = datetime.datetime.now()
 filename = "log_" + today.strftime('%Y%m%d') + ".log"
 filename = "flask_erp_log.log"
 logging.basicConfig(filename=filename, level=logging.DEBUG)
@@ -88,18 +87,15 @@ def before_request():
         # update login active session
         session['last_active'] = now
         if ('token' in key_list) == True:
-            str_query = 'update ' + str(ActiveLoginSession.__tablename__)
-            str_query += ' set updated_date = \'' + str(session['last_active']) + '\'' # .strftime('%Y-%m-%dT%H:%M')
-            str_query += ' where token = \'' + str(session['token']) + '\''
-            print(str_query)
-            mysqlcursor.execute(str_query)
-            mysqlconn.commit()
+            active_login_session = alchemy_session.query(ActiveLoginSession).filter_by(token=str(session['token'])).one()
+            active_login_session.time_updated = session['last_active']
+            alchemy_session.add(active_login_session)
+            alchemy_session.commit()
     except Exception as e:
-        mysqlconn.rollback()
         alchemy_session.rollback()
         msg = str(e)
-        logging.error(msg)
         print(msg)
+        logging.error(msg)
         return
     
     # check session expiration
@@ -414,9 +410,9 @@ def items():
     str_query += ' order by A.id asc'
     mysqlcursor.execute(str_query)
     items = mysqlcursor.fetchall()
-    # for row in items:
-    #     print(row[0], row[1], row[2])
-    print('alert : ', alert)
+
+    # for c, i in alchemy_session.query(ItemMaster, ItemStockMaster).filter(ItemMaster.id == ItemStockMaster.item_id).all():
+    #     print (c.id, i.id)
 
     return render_template("items.html", data=data, items=items, alert=alert)
 
@@ -568,21 +564,18 @@ def updaterecipe(recipe_id):
         return redirect('/')
 
     if request.method == "POST":
-        from datetime import datetime
-        today = datetime.now()
+        import datetime
+        now = datetime.datetime.now()
 
         import json
-        str_query = 'update ' + str(RecipeMaster.__tablename__)
-        str_query += ' set item_list_in_json = \'' + json.dumps(request.json) + '\''
-        str_query += ', time_updated = \'' + today.strftime('%Y-%m-%dT%H:%M') + '\''            
-        str_query += ' where id = ' + str(recipe_id)
-        print(str_query)
         try:
-            mysqlcursor.execute(str_query)
-            mysqlconn.commit()
+            recipe = alchemy_session.query(RecipeMaster).filter_by(id=recipe_id).one()
+            recipe.time_updated = now
+            alchemy_session.add(recipe)
+            alchemy_session.commit()
             return 'success'
         except Exception as e:
-            mysqlconn.rollback()
+            print(str(e))
             alchemy_session.rollback()
             session['alerts'] = 'you are not allowed to update item_list_in_json.' + str(e)
             return str(e)
@@ -847,15 +840,14 @@ def updateproductstatus(productstatus_id):
                 session['alerts'] = 'recipe.item_list_in_json ' + str(recipe.id) + ' is empty.'
                 return abort(404, description=session['alerts'])
 
-            from datetime import datetime
-            today = datetime.now()    
+            import datetime
+            today = datetime.datetime.now()
 
-            str_query = 'update ' + str(ProductStatusMaster.__tablename__)
-            str_query += ' set status = \'Finished\''
-            str_query += ', time_updated = \'' + today.strftime('%Y-%m-%dT%H:%M') + '\''            
-            str_query += ' where id = ' + str(productstatus_id)
-            mysqlcursor.execute(str_query)
-            mysqlconn.commit()
+            productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
+            productstatus.status = 'Finished'
+            productstatus.time_updated = today
+            alchemy_session.add(productstatus)
+            alchemy_session.commit()
 
             # plus stock
             item_list = []
@@ -879,19 +871,16 @@ def updateproductstatus(productstatus_id):
             
             stock = int(productstock.stock) + int(productstatus.quantity)
 
-            from datetime import datetime
-            today = datetime.now()
+            import datetime
+            today = datetime.datetime.now()
 
-            str_query = 'update ' + str(ProductStockMaster.__tablename__)
-            str_query += ' set stock = ' + str(stock)
-            str_query += ', time_updated = \'' + today.strftime('%Y-%m-%dT%H:%M') + '\''
-            str_query += ' where id = ' + str(productstock.id)
-            print(str_query)
             try:
-                mysqlcursor.execute(str_query)
-                mysqlconn.commit()
+                productstatus = alchemy_session.query(ProductStockMaster).filter_by(id=productstock.id).one()
+                productstatus.stock = stock
+                productstatus.time_updated = today
+                alchemy_session.add(productstatus)
+                alchemy_session.commit()
             except Exception as e:
-                mysqlconn.rollback()
                 alchemy_session.rollback()
                 session['alerts'] = 'you are not allowed to update the record.' + str(e)
                 return redirect('/showproductstatus')
@@ -902,16 +891,14 @@ def updateproductstatus(productstatus_id):
                 item_stock_in_db = alchemy_session.query(ItemStockMaster).filter_by(item_id=item.id).one()
                 print(item_stock_to_be_required, item_stock_in_db.stock)
                 stock = int(item_stock_in_db.stock) - int(item_stock_to_be_required)
-                str_query = 'update ' + str(ItemStockMaster.__tablename__)
-                str_query += ' set stock = ' + str(stock)
-                str_query += ', time_updated = \'' + today.strftime('%Y-%m-%dT%H:%M') + '\''
-                str_query += ' where id = ' + str(item.id)
+
                 try:
-                    print(str_query)
-                    mysqlcursor.execute(str_query)
-                    mysqlconn.commit()
+                    itemstock = alchemy_session.query(ItemStockMaster).filter_by(id=item.id).one()
+                    itemstock.stock = stock
+                    itemstock.time_updated = today
+                    alchemy_session.add(itemstock)
+                    alchemy_session.commit()
                 except Exception as e:
-                    mysqlconn.rollback()
                     alchemy_session.rollback()
                     session['alerts'] = 'you are not allowed to update the record.' + str(e)
                     return redirect('/showproductstatus')
@@ -927,16 +914,15 @@ def updateproductstatus(productstatus_id):
                 session['alerts'] = 'recipe.item_list_in_json ' + str(recipe.id) + ' is empty.'
                 return abort(404, description=session['alerts'])
             
-            from datetime import datetime
-            today = datetime.now()
-            
-            str_query = 'update ' + str(ProductStatusMaster.__tablename__)
-            str_query += ' set status = \'OnGoing\''
-            str_query += ', time_updated = \'' + today.strftime('%Y-%m-%dT%H:%M') + '\''
-            str_query += ' where id = ' + str(productstatus_id)
-            mysqlcursor.execute(str_query)
-            mysqlconn.commit()
+            import datetime
+            today = datetime.datetime.now()
 
+            productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
+            productstatus.status = 'OnGoing'
+            productstatus.time_updated = today
+            alchemy_session.add(productstatus)
+            alchemy_session.commit()
+            
             # minus stock
             productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
             productstock = alchemy_session.query(ProductStockMaster).filter_by(product_id=productstatus.product_id).one()
@@ -944,16 +930,15 @@ def updateproductstatus(productstatus_id):
             stock = int(productstock.stock) - int(productstatus.quantity)
             print('new stock : ', stock)
 
-            from datetime import datetime
-            today = datetime.now()
+            import datetime
+            today = datetime.datetime.now()
 
-            str_query = 'update ' + str(ProductStockMaster.__tablename__)
-            str_query += ' set stock = ' + str(stock)
-            str_query += ', time_updated = \'' + today.strftime('%Y-%m-%dT%H:%M') + '\''
-            str_query += ' where id = ' + str(productstock.id)
-            mysqlcursor.execute(str_query)
-            mysqlconn.commit()
-            
+            productstock = alchemy_session.query(ProductStockMaster).filter_by(id=productstock.id).one()
+            productstock.stock = stock
+            productstock.time_updated = today
+            alchemy_session.add(productstock)
+            alchemy_session.commit()
+
             import json
             item_list = json.loads(recipe.item_list_in_json)
 
@@ -963,13 +948,12 @@ def updateproductstatus(productstatus_id):
                 item_stock_in_db = alchemy_session.query(ItemStockMaster).filter_by(item_id=item.id).one()
                 print(item_stock_to_be_required, item_stock_in_db.stock)
                 stock = int(item_stock_in_db.stock) + int(item_stock_to_be_required)
-                str_query = 'update ' + str(ItemStockMaster.__tablename__)
-                str_query += ' set stock = ' + str(stock)
-                str_query += ', time_updated = \'' + today.strftime('%Y-%m-%dT%H:%M') + '\''
-                str_query += ' where id = ' + str(item.id)
-                print(str_query)
-                mysqlcursor.execute(str_query)
-                mysqlconn.commit()
+
+                itemstock = alchemy_session.query(ItemStockMaster).filter_by(id=item.id).one()
+                itemstock.stock = stock
+                itemstock.time_updated = today
+                alchemy_session.add(itemstock)
+                alchemy_session.commit()
 
             return redirect('/showproductstatus')
 
@@ -979,16 +963,14 @@ def updateproductstatus(productstatus_id):
             alert = 'you are not allowed to upate the product status record ' + str(productstatus.id) + ' because is has been committed.'
             return render_template('showproductstatus.html', data=data, alert=alert, productstatuses=productstatuses)
         else:
-            from datetime import datetime
-            today = datetime.now()
+            import datetime
+            today = datetime.datetime.now()
             
-            str_query = 'update ' + str(ProductStatusMaster.__tablename__)
-            str_query += ' set quantity = ' + str(quantity)
-            str_query += ', time_updated = \'' + today.strftime('%Y-%m-%dT%H:%M') + '\''
-            str_query += ' where id = ' + str(productstatus.id)
-            print(str_query)
-            mysqlcursor.execute(str_query)
-            mysqlconn.commit()
+            productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
+            productstatus.quantity = quantity
+            productstatus.time_updated = today
+            alchemy_session.add(productstatus)
+            alchemy_session.commit()
             return redirect('/showproductstatus')
 
 @app.route('/updateitemstock/<int:item_id>/', methods=['GET', 'POST'])
@@ -1018,15 +1000,14 @@ def updateitemstock(item_id):
         # 	print(key)
         quantity = request.form.get('quantity')
 
-        from datetime import datetime
-        today = datetime.now()
+        import datetime
+        today = datetime.datetime.now()
         
-        str_query = 'update ' + str(ItemStockMaster.__tablename__)
-        str_query += ' set stock = ' + str(quantity)
-        str_query += ', time_updated = \'' + today.strftime('%Y-%m-%dT%H:%M') + '\''
-        str_query += ' where item_id = ' + str(item_id)
-        print(str_query)
-        mysqlcursor.execute(str_query)
+        itemstock = alchemy_session.query(ItemStockMaster).filter_by(id=item_id).one()
+        itemstock.stock = quantity
+        itemstock.time_updated = today
+        alchemy_session.add(itemstock)
+        alchemy_session.commit()
         mysqlconn.commit()
         return redirect('/items')
 

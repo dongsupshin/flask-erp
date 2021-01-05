@@ -157,8 +157,9 @@ class ActiveLoginSession(Base):
     user = relationship(User)
     username = Column(String(256), ForeignKey('user.username'), nullable=True)
     token = Column(String(256), nullable=False, unique=True)
-    created_date = Column(DateTime(timezone=True), server_default=func.now())
-    updated_date = Column(DateTime(timezone=True), onupdate=func.now())
+
+    time_created = Column(DateTime(timezone=True), server_default=func.now())
+    time_updated = Column(DateTime(timezone=True), onupdate=func.now())
 
 class LoginHistory(Base):
     __tablename__ = 'login_history'
@@ -172,7 +173,8 @@ class LoginHistory(Base):
 
     login_time = Column(DateTime(timezone=True), server_default=func.now())
     time_created = Column(DateTime(timezone=True), server_default=func.now())
-
+    time_updated = Column(DateTime(timezone=True), onupdate=func.now())
+    
 class Board(Base):
     __tablename__ = 'board'
 
