@@ -346,7 +346,8 @@ def users():
         return redirect('/')
     data = alchemy_session.query(User).filter_by(username=session['username']).one()
     if "admin" not in data.type:
-        return "you don't have access to this cause you're not an admin."
+        session['alerts'] = "you don't have access to this cause you're not an admin."
+        return redirect('/')
     users = alchemy_session.query(User).filter_by(type='admin').all()
     return render_template("users.html", data=data, users=users)
 
@@ -494,7 +495,8 @@ def profiles():
         return redirect('/')
     data = alchemy_session.query(User).filter_by(username=session['username']).one()
     if "admin" not in data.type:
-        return "you don't have access to this cause you're not an admin."
+        session['alerts'] = "you don't have access to this cause you're not an admin."
+        return redirect('/')
     profiles = alchemy_session.query(Profile).all()
     return render_template("profiles.html", data=data, profiles=profiles)
 
@@ -769,7 +771,7 @@ def showproductstatus():
     productstatuses = alchemy_session.query(ProductStatusMaster).order_by(ProductStatusMaster.created_date.desc()).all()
     return render_template('showproductstatus.html', data=data, alert=alert, productstatuses=productstatuses)
 
-@app.route('/showboard', methods=['GET', 'POST'])
+@app.route('/showboard', methods=['GET'])
 def showboard():
     if 'username' not in session:
         return redirect('/')
@@ -789,8 +791,6 @@ def showboard():
             alert = None
             boards = alchemy_session.query(Board).all()
             return render_template("board.html", data=data, boards=boards)
-    else:
-        return 'hello world'
 
 @app.route('/updateproductstatus/<int:productstatus_id>/', methods=['GET', 'POST'])
 def updateproductstatus(productstatus_id):
@@ -979,7 +979,7 @@ def updateitemstock(item_id):
         alchemy_session.commit()
         return redirect('/items')
 
-@app.route('/showproductstock', methods=['GET', 'POST'])
+@app.route('/showproductstock', methods=['GET'])
 def showproductstock():
     if 'username' not in session:
         return redirect('/')
@@ -1000,8 +1000,6 @@ def showproductstock():
 
         productstocks = alchemy_session.query(ProductStockMaster).order_by(ProductStockMaster.time_created.desc()).all()
         return render_template('showproductstock.html', data=data, alert=alert, productstocks=productstocks)
-    else:
-        return 'hello world'
 
 
 @app.route('/dashboard')
