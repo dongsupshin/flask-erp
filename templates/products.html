@@ -17,10 +17,10 @@
 			<tbody>
 				{% for i in products%}
 				<tr>
-					<td>{{i[0]}}</td>
-					<td>{{i[1]}}</td>
-					<td>{{i[2]}}</td>
-					<td>{{i[3]}}</td>
+					<td>{{i.id}}</td>
+					<td>{{i.name}}</td>
+					<td>{{i.time_created}}</td>
+					<td>{{i.stock}}</td>
 				</tr>
 				{% endfor %}
 

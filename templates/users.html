@@ -18,13 +18,13 @@
 				{% for i in users%}
 				<tr>
 					<!-- username -->
-					<td>{{i[0]}}</td>
+					<td>{{i.username}}</td>
 					<!-- type -->
-					<td>{{i[1]}}</td>
+					<td>{{i.type}}</td>
 					<!-- time_created -->
-					<td>{{i[2]}}</td>
+					<td>{{i.time_created}}</td>
 					<!-- time_updated -->
-					<td>{{i[3]}}</td>
+					<td>{{i.time_updated}}</td>
 				</tr>
 				{% endfor %}
 

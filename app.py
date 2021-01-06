@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, abort, url_for, send_from_directory, flash, jsonify
+from flask import Flask, render_template, request, redirect, session, abort, url_for, send_from_directory, jsonify
 from flaskext.mysql import MySQL
 from sqlalchemy import asc, desc, join
 from sqlalchemy.orm import sessionmaker
@@ -6,19 +6,15 @@ from sqlalchemy.sql.sqltypes import String
 from database_setup import Base, engine, User, Profile, FacilityMaster, ProductMaster, ProductStockMaster, ItemMaster, \
     ItemStockMaster, RecipeMaster, ProductStatusMaster, ActiveLoginSession, uuid_url64, LoginHistory, Board
 from flask_bootstrap import Bootstrap
-# deprecated
-# from werkzeug import secure_filename
 from werkzeug.utils import secure_filename
 from lib.upload_file import uploadfile
 from PIL import Image
 from inspect import currentframe, getframeinfo
-# print(frameinfo.filename, frameinfo.lineno)
-import sys, os, PIL, simplejson, traceback, logging, datetime
+import sys, os, PIL, simplejson, traceback, logging, datetime, json, datetime
 
-today = datetime.datetime.now()
-filename = "log_" + today.strftime('%Y%m%d') + ".log"
+now = datetime.datetime.now()
 filename = "flask_erp_log.log"
-logging.basicConfig(filename=filename, level=logging.DEBUG)
+logging.basicConfig(filename=filename, level=logging.ERROR)
 
 def getFileName():
     frameinfo = getframeinfo(currentframe())
@@ -55,16 +51,33 @@ IGNORED_FILES = set(['.gitignore'])
 
 bootstrap = Bootstrap(app)
 
+def CheckActiveSession():
+    try:
+        activesessions = alchemy_session.query(ActiveLoginSession).all()
+        for row in activesessions:
+            if row.time_updated:
+                last_login = row.time_updated
+            else:
+                last_login = row.time_created
+
+            now = datetime.datetime.now()
+            delta = now - last_login
+            if delta.seconds > 3600 and now > last_login:
+                session_to_delete = alchemy_session.query(ActiveLoginSession).filter_by(id=row.id).one()
+                alchemy_session.delete(session_to_delete)
+                alchemy_session.commit()
+    except Exception as e:
+        logging.error(str(e))
+
 @app.before_request
 def before_request():
+    CheckActiveSession()
+
     ######################################
     # [TBD]
     if str(request.path).split('/')[1] in ('static', 'upload'):
         return
     ######################################
-
-    import datetime
-    now = datetime.datetime.now()
 
     key_list = []
     for key in session:
@@ -77,6 +90,7 @@ def before_request():
     if ('type' in key_list) == True:
         type = session['type']
     if ('last_active' in key_list) == False:
+        now = datetime.datetime.now()
         session['last_active'] = now
 
     try:
@@ -85,6 +99,7 @@ def before_request():
         alchemy_session.add(loginhistory)
         alchemy_session.commit()
         # update login active session
+        now = datetime.datetime.now()
         session['last_active'] = now
         if ('token' in key_list) == True:
             active_login_session = alchemy_session.query(ActiveLoginSession).filter_by(token=str(session['token'])).one()
@@ -92,19 +107,18 @@ def before_request():
             alchemy_session.add(active_login_session)
             alchemy_session.commit()
     except Exception as e:
+        logging.error(str(e))
         alchemy_session.rollback()
-        msg = str(e)
-        print(msg)
-        logging.error(msg)
         return
     
     # check session expiration
     try:
         last_active = session['last_active']
+        now = datetime.datetime.now()
         delta = now - last_active
         if delta.seconds > 3600:
             session['last_active'] = now
-            flash("Your session has expired after 30 minutes, you have been logged out")
+            session['alerts'] = "Your session has expired after 30 minutes, you have been logged out"
             disconnect()
     except Exception as e:
         pass
@@ -112,8 +126,6 @@ def before_request():
 # Disconnect based on provider
 @app.route('/disconnect')
 def disconnect():
-    print('disconnect!!!')
-    print(session)
     del session
     return redirect(url_for('index'))
 
@@ -149,7 +161,7 @@ def create_thumbnail(image):
         return True
 
     except:
-        print(traceback.format_exc())
+        logging.error(str(traceback.format_exc()))
         return False
 
 
@@ -266,20 +278,22 @@ def signup():
         address = request.form.get('address')
         email = request.form.get('email')
         number = request.form.get('number')
-        mysqlcursor.execute("SELECT * FROM user where username ='" + username + "'")
-        data = mysqlcursor.fetchone()
-        if data is not None:
-            msg = "username already exists <br />"
+        try:
+            data = alchemy_session.query(User).filter_by(username=username).one()
+            if data is not None:
+                msg = "username already exists <br />"
+        except Exception as e:
+            pass
 
         flag = 0
         try:
-            flag = mysqlcursor.execute(
-                "INSERT INTO user (username,password,type) VALUES('" + username + "','" + password + "','user')")
-            flag = mysqlcursor.execute(
-                "INSERT INTO profile (username,name,dob,sex,email,address,number) VALUES('" + username + "','" + name + "','" + dob + "','" + sex + "','" + email + "','" + address + "','" + number + "')")
-            mysqlconn.commit()
+            newuser = User(username=username, password=password, type='user')
+            alchemy_session.add(newuser)
+            newuserprofile = Profile(user=newuser, name=name, dob=dob, sex=sex, email=email, address=address, number=number)
+            alchemy_session.add(newuserprofile)
+            alchemy_session.commit()
+            flag = 1
         except Exception as e:
-            mysqlconn.rollback()
             logging.error(str(e))
             flag = 0
 
@@ -300,16 +314,14 @@ def login():
 
     if username is None or password is None:
         return render_template('wrong-login.html')
-        
-    mysqlcursor.execute("SELECT * FROM user where username='" + username + "' and password='" + password + "'")
-    data = mysqlcursor.fetchone()
+
+    data = alchemy_session.query(User).filter_by(username=username).filter_by(password=password).one()
     if data is None:
         return render_template('wrong-login.html')
     else:
         session['username'] = username
-        session['type'] = data[2]
-        print(session['username'], session['type'])
-
+        session['type'] = data.type
+        
         user = alchemy_session.query(User).filter_by(username=username).one()
 
         try:
@@ -319,14 +331,11 @@ def login():
                 alchemy_session.commit()
         except Exception as e:
             logging.error(str(e))
-            print(str(e))
 
         new_login_session = ActiveLoginSession(user=user, token=str(uuid_url64()))
         alchemy_session.add(new_login_session)
         alchemy_session.commit()
         session['token'] = new_login_session.token
-        print('session[\'token\']', session['token'], 'has been created.')
-
         return redirect('/dashboard')
 
 
@@ -334,12 +343,10 @@ def login():
 def users():
     if 'username' not in session:
         return redirect('/')
-    mysqlcursor.execute("SELECT type FROM user where username='" + session['username'] + "'")
-    data = mysqlcursor.fetchone()
-    if "admin" not in data:
+    data = alchemy_session.query(User).filter_by(username=session['username']).one()
+    if "admin" not in data.type:
         return "you don't have access to this cause you're not an admin."
-    mysqlcursor.execute("SELECT username, type, time_created, time_updated FROM user WHERE EXISTS(SELECT * FROM user WHERE type = \"admin\")")
-    users = mysqlcursor.fetchall()
+    users = alchemy_session.query(User).filter_by(type='admin').all()
     return render_template("users.html", data=data, users=users)
 
 @app.route('/products')
@@ -347,10 +354,13 @@ def products():
     if 'username' not in session:
         return redirect('/')
 
-    mysqlcursor.execute(
-        "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
-            'username'] + "\" and user.username = profile.username")
-    data = mysqlcursor.fetchone()
+    items = []
+    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
+        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
+        items.append(item)
+    
+    data = items[0]
+
     if data is None:
         return abort(404)
     if 'alerts' in session:
@@ -359,11 +369,11 @@ def products():
     else:
         alert = None
 
-    str_query = 'SELECT A.id, A.name, A.time_created, B.stock FROM erp.product_master A left join erp.product_stock_master B on A.id = B.product_id'
-    str_query += ' order by A.id asc'
-    print(str_query)
-    mysqlcursor.execute(str_query)
-    products = mysqlcursor.fetchall()
+    items = []
+    for A, B in alchemy_session.query(ProductMaster, ProductStockMaster).filter(ProductMaster.id==ProductStockMaster.product_id).all():
+        item = {'id' : A.id, 'name' : A.name, 'time_created' : A.time_created, 'stock' : B.stock}
+        items.append(item)
+    products=items
 
     return render_template("products.html", data=data, alert=alert, products=products)
 
@@ -372,15 +382,16 @@ def recipes():
     if 'username' not in session:
         return redirect('/')
 
-    mysqlcursor.execute(
-        "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
-            'username'] + "\" and user.username = profile.username")
-    data = mysqlcursor.fetchone()
+    items = []
+    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
+        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
+        items.append(item)
+    data = items[0]
+    
     if data is None:
         return abort(404)
     if 'alerts' in session:
         alert = session['alerts']
-        # print('alert : ', alert)
         session.pop('alerts')
     else:
         alert = None
@@ -393,27 +404,24 @@ def items():
     if 'username' not in session:
         return redirect('/')
 
-    mysqlcursor.execute(
-        "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
-            'username'] + "\" and user.username = profile.username")
-    data = mysqlcursor.fetchone()
+    items = []
+    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
+        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
+        items.append(item)
+    data = items[0]
     if data is None:
         return abort(404)
     if 'alerts' in session:
         alert = session['alerts']
-        # print('alert : ', alert)
         session.pop('alerts')
     else:
         alert = None
 
-    str_query = 'SELECT A.id, A.name, A.time_created, B.time_updated, B.stock FROM erp.item_master A left join erp.item_stock_master B on A.id = B.item_id'
-    str_query += ' order by A.id asc'
-    mysqlcursor.execute(str_query)
-    items = mysqlcursor.fetchall()
-
-    # for c, i in alchemy_session.query(ItemMaster, ItemStockMaster).filter(ItemMaster.id == ItemStockMaster.item_id).all():
-    #     print (c.id, i.id)
-
+    items = []
+    for A, B in alchemy_session.query(ItemMaster, ItemStockMaster).filter(ItemMaster.id == ItemStockMaster.item_id).all():
+        item = {'id' : A.id, 'name' : A.name, 'time_created' : A.time_created, 'time_updated' : B.time_updated, 'stock' : B.stock}
+        items.append(item)
+    
     return render_template("items.html", data=data, items=items, alert=alert)
 
 
@@ -422,10 +430,11 @@ def filelist():
     if 'username' not in session:
         return redirect('/')
 
-    mysqlcursor.execute(
-        "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
-            'username'] + "\" and user.username = profile.username")
-    data = mysqlcursor.fetchone()
+    items = []
+    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
+        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
+        items.append(item)
+    data = items[0]
     if data is None:
         return abort(404)
     if 'alerts' in session:
@@ -441,10 +450,11 @@ def loginhistory():
     if 'username' not in session:
         return redirect('/')
 
-    mysqlcursor.execute(
-        "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
-            'username'] + "\" and user.username = profile.username")
-    data = mysqlcursor.fetchone()
+    items = []
+    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
+        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
+        items.append(item)
+    data = items[0]
     if data is None:
         return abort(404)
     if 'alerts' in session:
@@ -461,10 +471,11 @@ def activeloginsession():
     if 'username' not in session:
         return redirect('/')
 
-    mysqlcursor.execute(
-        "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
-            'username'] + "\" and user.username = profile.username")
-    data = mysqlcursor.fetchone()
+    items = []
+    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
+        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
+        items.append(item)
+    data = items[0]
     if data is None:
         return abort(404)
     if 'alerts' in session:
@@ -480,12 +491,10 @@ def activeloginsession():
 def profiles():
     if 'username' not in session:
         return redirect('/')
-    mysqlcursor.execute("SELECT type FROM user where username='" + session['username'] + "'")
-    data = mysqlcursor.fetchone()
-    if "admin" not in data:
+    data = alchemy_session.query(User).filter_by(username=session['username']).one()
+    if "admin" not in data.type:
         return "you don't have access to this cause you're not an admin."
-    mysqlcursor.execute("SELECT * FROM erp.profile")
-    profiles = mysqlcursor.fetchall()
+    profiles = alchemy_session.query(Profile).all()
     return render_template("profiles.html", data=data, profiles=profiles)
 
 
@@ -502,10 +511,13 @@ def logout():
 def settings():
     if 'username' not in session:
         return redirect('/')
-    mysqlcursor.execute(
-        "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
-            'username'] + "\" and user.username = profile.username")
-    data = mysqlcursor.fetchone()
+
+    items = []
+    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
+        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
+        items.append(item)
+    data = items[0]
+
     if data is None:
         return abort(404)
     if 'alerts' in session:
@@ -521,8 +533,6 @@ def newrecipe():
         return redirect('/')
 
     if request.method == "POST":
-        # for key in request.form:
-        # 	print(key)
         recipename = request.form.get('recipename')
         user = request.form.get('user')
         detail = request.form.get('detail')
@@ -530,21 +540,21 @@ def newrecipe():
 
         try:
             product = alchemy_session.query(ProductMaster).filter_by(id=product_id).one()
-            print(recipename, user, detail, product_id)
             newrecipe = RecipeMaster(name=recipename, detail=detail, product=product)
             alchemy_session.add(newrecipe)
             alchemy_session.commit()
             return redirect('/updaterecipe/' + str(newrecipe.id))
         except Exception as e:
-            mysqlconn.rollback()
+            logging.error(str(e))
             alchemy_session.rollback()
             session['alerts'] = 'you are not allowed to create new recipe.' + str(e)
             return redirect('/')
     else:
-        mysqlcursor.execute(
-            "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
-                'username'] + "\" and user.username = profile.username")
-        data = mysqlcursor.fetchone()
+        items = []
+        for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
+            item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
+            items.append(item)
+        data = items[0]
         if data is None:
             return abort(404)
         if 'alerts' in session:
@@ -564,26 +574,25 @@ def updaterecipe(recipe_id):
         return redirect('/')
 
     if request.method == "POST":
-        import datetime
-        now = datetime.datetime.now()
-
-        import json
         try:
             recipe = alchemy_session.query(RecipeMaster).filter_by(id=recipe_id).one()
+            now = datetime.datetime.now()
             recipe.time_updated = now
+            recipe.item_list_in_json = json.dumps(request.json)
             alchemy_session.add(recipe)
             alchemy_session.commit()
             return 'success'
         except Exception as e:
-            print(str(e))
+            logging.error(str(e))
             alchemy_session.rollback()
             session['alerts'] = 'you are not allowed to update item_list_in_json.' + str(e)
             return str(e)
     else:
-        mysqlcursor.execute(
-            "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
-                'username'] + "\" and user.username = profile.username")
-        data = mysqlcursor.fetchone()
+        items = []
+        for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
+            item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
+            items.append(item)
+        data = items[0]
         if data is None:
             return abort(404)
         if 'alerts' in session:
@@ -602,9 +611,6 @@ def newproduct():
         return redirect('/')
 
     if request.method == "POST":
-        # for key in request.form:
-        # 	print(key)
-
         productname = request.form.get('productname')
         stock = request.form.get('InputStock')
 
@@ -616,20 +622,19 @@ def newproduct():
             newproductstock = ProductStockMaster(product=newproduct, product_name=newproduct.name, stock=stock)
             alchemy_session.add(newproductstock)
             alchemy_session.commit()
-
-            mysqlconn.commit()
         except Exception as e:
-            mysqlconn.rollback()
+            logging.error(str(e))
             alchemy_session.rollback()
             session['alerts'] = 'you are not allowed to create new product.' + str(e)
             return redirect('/newproduct')
 
         return redirect('/products')
     else:
-        mysqlcursor.execute(
-            "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
-                'username'] + "\" and user.username = profile.username")
-        data = mysqlcursor.fetchone()
+        items = []
+        for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
+            item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
+            items.append(item)
+        data = items[0]
         if data is None:
             return abort(404)
         if 'alerts' in session:
@@ -646,9 +651,6 @@ def addproduct():
         return redirect('/')
 
     if request.method == "POST":
-        # for key in request.form:
-        # 	print(key)
-
         in_product = request.form.get('products')
         in_user = request.form.get('users')
         in_recipes = request.form.get('recipes')
@@ -657,11 +659,8 @@ def addproduct():
         in_facilities = request.form.get('facilities')
         in_createddatetime = request.form.get('createddatetime')
         in_recipe = request.form.get('recipe')
-        print(in_createddatetime)
 
-        import datetime
         date_time_obj = datetime.datetime.strptime(in_createddatetime, '%Y-%m-%dT%H:%M')
-        print('Date-time:', date_time_obj)
 
         try:
             recipe = alchemy_session.query(RecipeMaster).filter_by(id=in_recipe).one()
@@ -673,18 +672,18 @@ def addproduct():
                                                 quantity=0, recipe=recipe)
             alchemy_session.add(newproductstats)
             alchemy_session.commit()
-            print(newproductstats)
             return redirect('/showproductstatus')
         except Exception as e:
-            mysqlconn.rollback()
+            logging.error(str(e))
             alchemy_session.rollback()
             session['alerts'] = 'you are not allowed to create new product status.' + str(e)
             return redirect('/showproductstatus')
     else:
-        mysqlcursor.execute(
-            "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
-                'username'] + "\" and user.username = profile.username")
-        data = mysqlcursor.fetchone()
+        items = []
+        for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
+            item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
+            items.append(item)
+        data = items[0]
         if data is None:
             return abort(404)
         if 'alerts' in session:
@@ -705,10 +704,11 @@ def newitem():
     if 'username' not in session:
         return redirect('/')
 
-    mysqlcursor.execute(
-        "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
-            'username'] + "\" and user.username = profile.username")
-    data = mysqlcursor.fetchone()
+    items = []
+    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
+        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
+        items.append(item)
+    data = items[0]
     if data is None:
         return abort(404)
     if 'alerts' in session:
@@ -721,7 +721,6 @@ def newitem():
         in_item = request.form.get('itemname')
         in_user = request.form.get('users')
         in_quantity = request.form.get('quantity')
-        # print(in_item, in_user)
 
         try:
             user = alchemy_session.query(User).filter_by(username=in_user).one()
@@ -731,10 +730,9 @@ def newitem():
             itemstock = ItemStockMaster(item=newitem, stock=int(in_quantity))
             alchemy_session.add(itemstock)
             alchemy_session.commit()
-            mysqlconn.commit()
             return redirect('/items')
         except Exception as e:
-            mysqlconn.rollback()
+            logging.error(str(e))
             alchemy_session.rollback()
             session['alerts'] = 'you are not allowed to create new item.' + str(e)
             return redirect('/items')
@@ -742,41 +740,38 @@ def newitem():
         users = alchemy_session.query(User).all()
         return render_template('newitem.html', data=data, alert=alert, users=users)
 
-@app.route('/showproductstatus', methods=['GET', 'POST'])
+@app.route('/showproductstatus', methods=['GET'])
 def showproductstatus():
     if 'username' not in session:
         return redirect('/')
 
-    mysqlcursor.execute(
-        "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
-            'username'] + "\" and user.username = profile.username")
-    data = mysqlcursor.fetchone()
+    items = []
+    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
+        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
+        items.append(item)
 
-    if request.method == "GET":
-        if data is None:
-            return abort(404)
-        if 'alerts' in session:
-            alert = session['alerts']
-            session.pop('alerts')
-        else:
-            alert = None
-
-        productstatuses = alchemy_session.query(ProductStatusMaster).order_by(ProductStatusMaster.created_date.desc()).all()
-        return render_template('showproductstatus.html', data=data, alert=alert, productstatuses=productstatuses)
+    data = items[0]
+    if data is None:
+        return abort(404)
+    if 'alerts' in session:
+        alert = session['alerts']
+        session.pop('alerts')
     else:
+        alert = None
 
-        return 'hello world'
+    productstatuses = alchemy_session.query(ProductStatusMaster).order_by(ProductStatusMaster.created_date.desc()).all()
+    return render_template('showproductstatus.html', data=data, alert=alert, productstatuses=productstatuses)
 
 @app.route('/showboard', methods=['GET', 'POST'])
 def showboard():
     if 'username' not in session:
         return redirect('/')
 
-    mysqlcursor.execute(
-        "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
-            'username'] + "\" and user.username = profile.username")
-    data = mysqlcursor.fetchone()
-
+    items = []
+    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
+        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
+        items.append(item)
+    data = items[0]
     if request.method == "GET":
         if data is None:
             return abort(404)
@@ -795,38 +790,27 @@ def updateproductstatus(productstatus_id):
     if 'username' not in session:
         return redirect('/')
 
-    mysqlcursor.execute(
-        "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
-            'username'] + "\" and user.username = profile.username")
-    data = mysqlcursor.fetchone()
+    items = []
+    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
+        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
+        items.append(item)
+    data = items[0]
+    if data is None:
+        return abort(404)
+    if 'alerts' in session:
+        alert = session['alerts']
+        session.pop('alerts')
+    else:
+        alert = None
 
     if request.method == "GET":
-        if data is None:
-            return abort(404)
-        if 'alerts' in session:
-            alert = session['alerts']
-            session.pop('alerts')
-        else:
-            alert = None
-
         productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
         return render_template('updateproductstatus.html', data=data, alert=alert, productstatus=productstatus)
-
     else:
-        if data is None:
-            return abort(404)
-        if 'alerts' in session:
-            alert = session['alerts']
-            session.pop('alerts')
-        else:
-            alert = None
-        # POST
-        # for key in request.form:
-        # 	print(key)
-        quantity = request.form.get('quantity')
+        quantity = request.form.get('quantity') # update button clicked
         is_commit = request.form.get('IsCommit')
         is_cancel_commit = request.form.get('IsCancelCommit')
-
+        
         productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
         productstock = alchemy_session.query(ProductStockMaster).filter_by(product_id=productstatus.product_id).one()
         recipe = alchemy_session.query(RecipeMaster).filter_by(id=productstatus.recipe_id).one()
@@ -840,12 +824,9 @@ def updateproductstatus(productstatus_id):
                 session['alerts'] = 'recipe.item_list_in_json ' + str(recipe.id) + ' is empty.'
                 return abort(404, description=session['alerts'])
 
-            import datetime
-            today = datetime.datetime.now()
-
-            productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
             productstatus.status = 'Finished'
-            productstatus.time_updated = today
+            now = datetime.datetime.now()
+            productstatus.time_updated = now
             alchemy_session.add(productstatus)
             alchemy_session.commit()
 
@@ -858,47 +839,43 @@ def updateproductstatus(productstatus_id):
                 session['alerts'] = 'recipe_id ' + str(productstatus.recipe_id) + ' : productstatus.item_list_in_json is empty.'
                 return redirect('/showproductstatus')
             else:
-                import json
                 item_list = json.loads(recipe.item_list_in_json)
                 for row in item_list:
                     item = alchemy_session.query(ItemMaster).filter_by(name=row['item']).one()
                     item_stock_to_be_required = productstatus.quantity * int(row['quantity'])
                     item_stock_in_db = alchemy_session.query(ItemStockMaster).filter_by(item_id=item.id).one()
-                    print(item_stock_to_be_required, item_stock_in_db.stock)
                     if item_stock_to_be_required > item_stock_in_db.stock:
                         session['alerts'] = 'item stock is not enough. ' + 'item_stock_to_be_required : ' + str(item_stock_to_be_required) + ', item_stock_in_db.stock : ' + str(item_stock_in_db.stock)
                         return redirect('/showproductstatus')
             
             stock = int(productstock.stock) + int(productstatus.quantity)
-
-            import datetime
-            today = datetime.datetime.now()
-
+ 
             try:
-                productstatus = alchemy_session.query(ProductStockMaster).filter_by(id=productstock.id).one()
-                productstatus.stock = stock
-                productstatus.time_updated = today
-                alchemy_session.add(productstatus)
+                productstock = alchemy_session.query(ProductStockMaster).filter_by(id=productstock.id).one()
+                productstock.stock = stock
+                now = datetime.datetime.now()
+                productstock.time_updated = now
+                alchemy_session.add(productstock)
                 alchemy_session.commit()
             except Exception as e:
+                logging.error(str(e))
                 alchemy_session.rollback()
                 session['alerts'] = 'you are not allowed to update the record.' + str(e)
                 return redirect('/showproductstatus')
 
             for row in item_list:
-                item = alchemy_session.query(ItemMaster).filter_by(name=row['item']).one()
-                item_stock_to_be_required = productstatus.quantity * int(row['quantity'])
-                item_stock_in_db = alchemy_session.query(ItemStockMaster).filter_by(item_id=item.id).one()
-                print(item_stock_to_be_required, item_stock_in_db.stock)
-                stock = int(item_stock_in_db.stock) - int(item_stock_to_be_required)
-
                 try:
-                    itemstock = alchemy_session.query(ItemStockMaster).filter_by(id=item.id).one()
-                    itemstock.stock = stock
-                    itemstock.time_updated = today
-                    alchemy_session.add(itemstock)
+                    item = alchemy_session.query(ItemMaster).filter_by(name=row['item']).one()
+                    item_stock_to_be_required = productstatus.quantity * int(row['quantity'])
+                    item_stock_in_db = alchemy_session.query(ItemStockMaster).filter_by(item_id=item.id).one()
+                    stock = int(item_stock_in_db.stock) - int(item_stock_to_be_required)
+                    item_stock_in_db.stock = stock
+                    now = datetime.datetime.now()
+                    item_stock_in_db.time_updated = now
+                    alchemy_session.add(item_stock_in_db)
                     alchemy_session.commit()
                 except Exception as e:
+                    logging.error(str(e))
                     alchemy_session.rollback()
                     session['alerts'] = 'you are not allowed to update the record.' + str(e)
                     return redirect('/showproductstatus')
@@ -914,61 +891,51 @@ def updateproductstatus(productstatus_id):
                 session['alerts'] = 'recipe.item_list_in_json ' + str(recipe.id) + ' is empty.'
                 return abort(404, description=session['alerts'])
             
-            import datetime
-            today = datetime.datetime.now()
 
             productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
             productstatus.status = 'OnGoing'
-            productstatus.time_updated = today
+            now = datetime.datetime.now()
+            productstatus.time_updated = now
             alchemy_session.add(productstatus)
             alchemy_session.commit()
             
             # minus stock
             productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
             productstock = alchemy_session.query(ProductStockMaster).filter_by(product_id=productstatus.product_id).one()
-            print('stock : ', productstock.stock)
             stock = int(productstock.stock) - int(productstatus.quantity)
-            print('new stock : ', stock)
-
-            import datetime
-            today = datetime.datetime.now()
-
+            
             productstock = alchemy_session.query(ProductStockMaster).filter_by(id=productstock.id).one()
             productstock.stock = stock
-            productstock.time_updated = today
+            now = datetime.datetime.now()
+            productstock.time_updated = now
             alchemy_session.add(productstock)
             alchemy_session.commit()
 
-            import json
             item_list = json.loads(recipe.item_list_in_json)
 
             for row in item_list:
                 item = alchemy_session.query(ItemMaster).filter_by(name=row['item']).one()
                 item_stock_to_be_required = productstatus.quantity * int(row['quantity'])
                 item_stock_in_db = alchemy_session.query(ItemStockMaster).filter_by(item_id=item.id).one()
-                print(item_stock_to_be_required, item_stock_in_db.stock)
                 stock = int(item_stock_in_db.stock) + int(item_stock_to_be_required)
-
-                itemstock = alchemy_session.query(ItemStockMaster).filter_by(id=item.id).one()
-                itemstock.stock = stock
-                itemstock.time_updated = today
-                alchemy_session.add(itemstock)
+                
+                item_stock_in_db.stock = stock
+                now = datetime.datetime.now()
+                item_stock_in_db.time_updated = now
+                alchemy_session.add(item_stock_in_db)
                 alchemy_session.commit()
 
             return redirect('/showproductstatus')
 
         productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
         if productstatus.status == 'Finished':
-            productstatuses = alchemy_session.query(ProductStatusMaster).order_by(ProductStatusMaster.created_date.desc()).all()
-            alert = 'you are not allowed to upate the product status record ' + str(productstatus.id) + ' because is has been committed.'
-            return render_template('showproductstatus.html', data=data, alert=alert, productstatuses=productstatuses)
-        else:
-            import datetime
-            today = datetime.datetime.now()
-            
+            session['alerts'] = 'you are not allowed to upate the product status record ' + str(productstatus.id) + ' because is has been committed.'
+            return redirect('/showproductstatus')
+        else:            
             productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
             productstatus.quantity = quantity
-            productstatus.time_updated = today
+            now = datetime.datetime.now()
+            productstatus.time_updated = now
             alchemy_session.add(productstatus)
             alchemy_session.commit()
             return redirect('/showproductstatus')
@@ -978,10 +945,11 @@ def updateitemstock(item_id):
     if 'username' not in session:
         return redirect('/')
 
-    mysqlcursor.execute(
-        "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
-            'username'] + "\" and user.username = profile.username")
-    data = mysqlcursor.fetchone()
+    items = []
+    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
+        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
+        items.append(item)
+    data = items[0]
 
     if request.method == "GET":
         if data is None:
@@ -995,20 +963,13 @@ def updateitemstock(item_id):
         itemstock = alchemy_session.query(ItemStockMaster).filter_by(item_id=item_id).one()
         return render_template('updateitemstock.html', data=data, alert=alert, itemstock=itemstock)
     else:
-        # POST
-        # for key in request.form:
-        # 	print(key)
         quantity = request.form.get('quantity')
-
-        import datetime
-        today = datetime.datetime.now()
-        
         itemstock = alchemy_session.query(ItemStockMaster).filter_by(id=item_id).one()
         itemstock.stock = quantity
-        itemstock.time_updated = today
+        now = datetime.datetime.now()
+        itemstock.time_updated = now
         alchemy_session.add(itemstock)
         alchemy_session.commit()
-        mysqlconn.commit()
         return redirect('/items')
 
 @app.route('/showproductstock', methods=['GET', 'POST'])
@@ -1016,11 +977,11 @@ def showproductstock():
     if 'username' not in session:
         return redirect('/')
 
-    mysqlcursor.execute(
-        "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
-            'username'] + "\" and user.username = profile.username")
-    data = mysqlcursor.fetchone()
-
+    items = []
+    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
+        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
+        items.append(item)
+    data = items[0]
     if request.method == "GET":
         if data is None:
             return abort(404)
@@ -1050,10 +1011,11 @@ def dashboard():
             session.pop('username')
             session.pop('type')
             return "Your details are not filled. Please sign up again <a href=\"/signup\">here</a>. Account has been suspended."
-    mysqlcursor.execute(
-        "SELECT name, dob, sex, email, number, address FROM user, profile where user.username = \"" + session[
-            'username'] + "\" and user.username = profile.username")
-    data = mysqlcursor.fetchone()
+    items = []
+    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
+        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
+        items.append(item)
+    data = items[0]
     if data is None:
         return abort(404)
     return render_template("dashboard.html", data=data)
@@ -1076,40 +1038,44 @@ def changesettings():
         if username == session['username']:
             msg = msg + "<br /> Same Username "
         else:
-            mysqlcursor.execute("SELECT username FROM user WHERE username = \"" + username + "\"")
-            data = mysqlcursor.fetchone()
-            if data is None:
+            try:
+                data = alchemy_session.query(User).filter_by(username=username).one()
+                msg = msg + "<br />username already exists"
+            except Exception as e:
+                # this is not error
                 msg = msg + "<br /> Username Available"
-                mysqlcursor.execute(
-                    "UPDATE user SET username = \"" + username + "\" WHERE username = \"" + session['username'] + "\"")
-                mysqlcursor.execute("UPDATE profile SET username = \"" + username + "\" WHERE username = \"" + session[
-                    'username'] + "\"")
-                mysqlcursor.commit()
+
+                user_to_update = alchemy_session.query(User).filter_by(username=session['username']).one()
+                user_to_update.username = username
+                profile_to_update = alchemy_session.query(Profile).filter_by(username=session['username']).one()
+                profile_to_update.username = username
+                alchemy_session.commit()
                 session['username'] = username
                 msg = msg + "<br />username changed to " + username
-            else:
-                msg = msg + "<br />username already exists"
     else:
         msg = msg + "<br /> username is none"
     if password != "" and password is not None:
-        mysqlcursor.execute("SELECT password FROM user WHERE username = \"" + username + "\"")
-        data = mysqlcursor.fetchone()
-        if password == data:
+        data = alchemy_session.query(User).filter_by(username=username).one()
+        if password == data.password:
             msg = msg + "<br /> Same Password."
         else:
-            mysqlcursor.execute(
-                "UPDATE user SET password = \"" + password + "\" WHERE username = \"" + session['username'] + "\"")
-            mysqlcursor.commit()
+            data.password = password
+            alchemy_session.commit()
     msg = msg + "<br /> Password changed."
     if newAdmin != "" and newAdmin is not None:
-        mysqlcursor.execute("SELECT type FROM user WHERE username = \"" + str(newAdmin) + "\"")
-        data = mysqlcursor.fetchone()
-        if data[0] == "admin":
-            msg = msg + "<br /> Already admin "
-        else:
-            mysqlcursor.execute("UPDATE user SET type = \"admin\" WHERE username = \"" + str(newAdmin) + "\"")
-            mysqlcursor.commit()
-            msg = msg + "<br />" + newAdmin + " is now admin "
+        try:
+            data = alchemy_session.query(User).filter_by(username=str(newAdmin)).one()
+            if data.type == "admin":
+                msg = msg + "<br /> Already admin "
+            else:
+                data.type = 'admin'
+                alchemy_session.commit()
+                msg = msg + "<br />" + newAdmin + " is now admin "
+        except Exception as e:
+            logging.error(str(e))
+            session['alerts'] = str(e)
+            return redirect("/settings")
+
     session['alerts'] = msg
     return redirect("/settings")
 
