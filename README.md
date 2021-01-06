@@ -6,8 +6,6 @@ Flask.
 
 > ERP or Enterprise Resource Planning System is business process management software that allows an organization to use a system of integrated applications to manage the business and automate many back office functions related to technology, services and human resources.
 
-For example, IIIT-Delhi’s own [erp.iiitd.edu.in](https://erp.iiitd.edu.in)
-
 ## Features
 1. Login/Signup:
 	* Add new user
