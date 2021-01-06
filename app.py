@@ -315,10 +315,8 @@ def login():
     if username is None or password is None:
         return render_template('wrong-login.html')
 
-    data = alchemy_session.query(User).filter_by(username=username).filter_by(password=password).one()
-    if data is None:
-        return render_template('wrong-login.html')
-    else:
+    try:
+        data = alchemy_session.query(User).filter_by(username=username).filter_by(password=password).one()
         session['username'] = username
         session['type'] = data.type
         
@@ -337,7 +335,10 @@ def login():
         alchemy_session.commit()
         session['token'] = new_login_session.token
         return redirect('/dashboard')
-
+    except Exception as e:
+        logging.error(str(e))
+        session['alerts'] = str(e)
+        return render_template('wrong-login.html')
 
 @app.route('/admin/users')
 def users():
@@ -502,8 +503,14 @@ def profiles():
 def logout():
     if 'username' not in session:
         return redirect('/')
+
+    session_to_delete = alchemy_session.query(ActiveLoginSession).filter_by(token=session['token']).one()
+    alchemy_session.delete(session_to_delete)
+    alchemy_session.commit()
+
     session.pop('username')
     session.pop('type')
+    session.pop('token')
     return redirect('/')
 
 
