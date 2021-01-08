@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="author" content="@gureks">
-	<title>Flask-ERP | Gurek - Azhar</title>
+	<title>Flask-ERP</title>
 	<link rel="stylesheet" href="{{ url_for('static',filename='css/bootstrap.min.css') }}">
 	<link rel="stylesheet" href="{{ url_for('static',filename='css/style.css') }}">
 	<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -17,6 +17,12 @@
 		<form class="form-signin" action="/login" method="POST">
 			<h1>ERP System</h1>
 			<hr style="border-color: black;">
+			{% if alert %}
+			<div class="alert alert-info alert-dismissible" role="alert">
+				<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<strong>Heads, up!</strong> {{ alert }}
+			</div>
+			{% endif %}
 			<h3 class="form-signin-heading" id="center">Please sign in</h3>
 			<label for="inputUsername" class="sr-only">Username</label>
 			<input type="text" name="username" id="inputUsername" class="form-control" placeholder="Username" required autofocus>

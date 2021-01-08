@@ -12,6 +12,7 @@
 	{% endif %}
 	<div class="row">
 		<form class="form-signin" action="/changesettings" method="POST">
+			<input type="hidden" name="selected_username" value="{{data.username}}">
 			{% if session['type']|string() == "admin" %}
 			<h3 class="form-signin-heading" id="center">Change Username</h3>
 			<label for="inputUsername" class="sr-only">Username</label>

@@ -13,7 +13,19 @@
 </head>
 
 <body>
-Username or Password incorrect. 
+{% if alert %}
+<div class="alert alert-info alert-dismissible" role="alert">
+	<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+	<strong>Heads, up!</strong> {{ alert }}
+</div>
+{% endif %}
+{% if error %}
+<div class="alert alert-info alert-dismissible" role="alert">
+	<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+	<strong>Heads, up!</strong> {{ error }}
+</div>
+{% endif %}
+Wrong Access. 
 If not redirected to the homepage in 10 seconds, <a href="/">click here</a>.
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
 	<script src="{{ url_for('static',filename='js/bootstrap.min.js') }}"></script>

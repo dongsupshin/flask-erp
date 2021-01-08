@@ -77,31 +77,6 @@ itemstock2 = ItemStockMaster(item=item2, stock=100)
 session.add(itemstock2)
 session.commit()
 
-activeloginsession = ActiveLoginSession(user=User1, token=str(uuid_url64()))
-session.add(activeloginsession)
-session.commit()
-
-loginhistory = LoginHistory(user=User1, request_url='http://localhost:8000/', remote_address='127.0.0.1', id=str(uuid_url64()))
-session.add(loginhistory)
-session.commit()
-
-board = Board(id=uuid_url64(), creator=User1, creatorname=User1.username, views=0);
-session.add(board)
-session.commit()
-
-# class Board(Base):
-#     __tablename__ = 'board'
-
-#     id = Column(String(256), primary_key=True)
-#     creator = relationship(User)
-#     creatorname = Column(String(256), ForeignKey('user.username'), nullable=True)
-#     views = Column(Integer, nullable=False)
-#     content = Column(String(1024), nullable=True, default='')
-    
-#     created_date = Column(DateTime(timezone=True), server_default=func.now())
-#     updated_date = Column(DateTime(timezone=True), onupdate=func.now())
-
-
 print('populate_database.py success')
 
 

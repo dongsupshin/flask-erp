@@ -56,13 +56,16 @@ from werkzeug.exceptions import HTTPException
 
 @app.errorhandler(Exception)
 def handle_exception(e):
-    print('handle_exception : ', str(e))
     # pass through HTTP errors
     if isinstance(e, HTTPException):
         return e
 
+    alert = None
+    if 'alerts' in session:
+        alert = session['alerts']
+
     # now you're handling non-HTTP exceptions only
-    return render_template("500.html", e=e), 500
+    return render_template("wrong-access.html", alert=alert, error=str(e)), 500
 
 def CheckActiveSession():
     try:
@@ -124,8 +127,8 @@ def before_request():
             alchemy_session.add(active_login_session)
             alchemy_session.commit()
     except Exception as e:
-        logging.error(str(e))
         alchemy_session.rollback()
+        logging.error(str(e))
         return
     
     # check session expiration
@@ -138,6 +141,7 @@ def before_request():
             session['alerts'] = "Your session has expired after 30 minutes, you have been logged out"
             disconnect()
     except Exception as e:
+        alchemy_session.rollback()
         pass
 
 # Disconnect based on provider
@@ -266,7 +270,12 @@ def fileuploader():
 def index():
     if 'username' in session:
         return redirect('/dashboard')
-    return render_template('index.html')
+    
+    alert = None
+    if 'alerts' in session:
+        alert = session['alerts']
+
+    return render_template('index.html', alert=alert)
 
 
 @app.route('/index_uploader')
@@ -281,6 +290,7 @@ def signup():
     if 'username' in session:
         return redirect('/dashboard')
     if request.method == "GET":
+        alert = None
         if 'alerts' in session:
             alert = session['alerts']
         else:
@@ -291,7 +301,8 @@ def signup():
         password = request.form.get('password')
         name = request.form.get('name')
         sex = request.form.get('sex')
-        dob = "2017-04-18"
+        dob = request.form.get('dob')
+        dob = datetime.datetime.strptime(dob, '%Y-%m-%d')
         address = request.form.get('address')
         email = request.form.get('email')
         number = request.form.get('number')
@@ -300,6 +311,7 @@ def signup():
             if data is not None:
                 msg = "username already exists <br />"
         except Exception as e:
+            alchemy_session.rollback()
             pass
 
         flag = 0
@@ -311,13 +323,16 @@ def signup():
             alchemy_session.commit()
             flag = 1
         except Exception as e:
+            alchemy_session.rollback()
             logging.error(str(e))
             flag = 0
 
         if flag == 0:
             msg = "wrong inputs, try again. <br />"
         else:
-            msg = "you were successful, please login from index."
+            msg = username + ' has been registered. please sign in.'
+            session['alerts'] = msg
+            return redirect("/")
         session['alerts'] = msg
         return redirect("/signup")
 
@@ -345,6 +360,7 @@ def login():
                 alchemy_session.delete(old)
                 alchemy_session.commit()
         except Exception as e:
+            alchemy_session.rollback()
             logging.error(str(e))
 
         new_login_session = ActiveLoginSession(user=user, token=str(uuid_url64()))
@@ -353,6 +369,7 @@ def login():
         session['token'] = new_login_session.token
         return redirect('/dashboard')
     except Exception as e:
+        alchemy_session.rollback()
         logging.error(str(e))
         session['alerts'] = str(e)
         return render_template('wrong-login.html')
@@ -365,7 +382,7 @@ def users():
     if "admin" not in data.type:
         session['alerts'] = "you don't have access to this cause you're not an admin."
         return redirect('/')
-    users = alchemy_session.query(User).filter_by(type='admin').all()
+    users = alchemy_session.query(User).all()
     return render_template("users.html", data=data, users=users)
 
 @app.route('/admin/users/<username>/update')
@@ -534,9 +551,14 @@ def logout():
     if 'username' not in session:
         return redirect('/')
 
-    session_to_delete = alchemy_session.query(ActiveLoginSession).filter_by(token=session['token']).one()
-    alchemy_session.delete(session_to_delete)
-    alchemy_session.commit()
+    try:
+        session_to_delete = alchemy_session.query(ActiveLoginSession).filter_by(token=session['token']).one()
+        alchemy_session.delete(session_to_delete)
+        alchemy_session.commit()
+    except Exception as e:
+        alchemy_session.rollback()
+        logging.error(str(e))
+        pass
 
     session.pop('username')
     session.pop('type')
@@ -582,8 +604,8 @@ def newrecipe():
             alchemy_session.commit()
             return redirect('/updaterecipe/' + str(newrecipe.id))
         except Exception as e:
-            logging.error(str(e))
             alchemy_session.rollback()
+            logging.error(str(e))
             session['alerts'] = 'you are not allowed to create new recipe.' + str(e)
             return redirect('/')
     else:
@@ -620,8 +642,8 @@ def updaterecipe(recipe_id):
             alchemy_session.commit()
             return 'success'
         except Exception as e:
-            logging.error(str(e))
             alchemy_session.rollback()
+            logging.error(str(e))
             session['alerts'] = 'you are not allowed to update item_list_in_json.' + str(e)
             return str(e)
     else:
@@ -660,8 +682,8 @@ def newproduct():
             alchemy_session.add(newproductstock)
             alchemy_session.commit()
         except Exception as e:
-            logging.error(str(e))
             alchemy_session.rollback()
+            logging.error(str(e))
             session['alerts'] = 'you are not allowed to create new product.' + str(e)
             return redirect('/newproduct')
 
@@ -711,8 +733,8 @@ def addproduct():
             alchemy_session.commit()
             return redirect('/showproductstatus')
         except Exception as e:
-            logging.error(str(e))
             alchemy_session.rollback()
+            logging.error(str(e))
             session['alerts'] = 'you are not allowed to create new product status.' + str(e)
             return redirect('/showproductstatus')
     else:
@@ -769,8 +791,8 @@ def newitem():
             alchemy_session.commit()
             return redirect('/items')
         except Exception as e:
-            logging.error(str(e))
             alchemy_session.rollback()
+            logging.error(str(e))
             session['alerts'] = 'you are not allowed to create new item.' + str(e)
             return redirect('/items')
     else:
@@ -893,8 +915,8 @@ def updateproductstatus(productstatus_id):
                 alchemy_session.add(productstock)
                 alchemy_session.commit()
             except Exception as e:
-                logging.error(str(e))
                 alchemy_session.rollback()
+                logging.error(str(e))
                 session['alerts'] = 'you are not allowed to update the record.' + str(e)
                 return redirect('/showproductstatus')
 
@@ -910,8 +932,8 @@ def updateproductstatus(productstatus_id):
                     alchemy_session.add(item_stock_in_db)
                     alchemy_session.commit()
                 except Exception as e:
-                    logging.error(str(e))
                     alchemy_session.rollback()
+                    logging.error(str(e))
                     session['alerts'] = 'you are not allowed to update the record.' + str(e)
                     return redirect('/showproductstatus')
 
@@ -1063,57 +1085,87 @@ def help():
 def changesettings():
     if 'username' not in session:
         return redirect('/')
-    username = request.form.get('username')
-    password = request.form.get('password')
+    selected_username = request.form.get('selected_username')
+    newusername = request.form.get('username')
+    newpassword = request.form.get('password')
     newAdmin = request.form.get('newAdmin')
-    # print(username, password, newAdmin)
+    print(selected_username, newusername, newpassword, newAdmin)
     
     msg = " "
-    if username != "" and username is not None:
-        if username == session['username']:
-            msg = msg + "<br /> Same Username "
+    if newusername != "" and newusername is not None:
+        if newusername == selected_username:
+            pass
         else:
             try:
-                data = alchemy_session.query(User).filter_by(username=username).one()
-                msg = msg + "<br />username already exists"
+                data = alchemy_session.query(User).filter_by(username=newusername).one()
+                msg = msg + " username already exists"
             except Exception as e:
-                # this is not error
-                msg = msg + "<br /> Username Available"
+                # this is not error, update user and profile
+                try:
+                    ##############################################################################
+                    # [TBD]
+                    profile = alchemy_session.query(Profile).filter_by(username=selected_username).one()
+                    
+                    dob = profile.dob
+                    sex = profile.sex
+                    email = profile.email
+                    address = profile.address
+                    number = profile.number
+                    alchemy_session.delete(profile)
+                    alchemy_session.commit()
+                    
+                    user_to_update = alchemy_session.query(User).filter_by(username=selected_username).one()
+                    user_to_update.username = newusername
+                    alchemy_session.add(user_to_update)
+                    alchemy_session.commit()
 
-                user_to_update = alchemy_session.query(User).filter_by(username=session['username']).one()
-                user_to_update.username = username
-                profile_to_update = alchemy_session.query(Profile).filter_by(username=session['username']).one()
-                profile_to_update.username = username
-                alchemy_session.commit()
-                session['username'] = username
-                msg = msg + "<br />username changed to " + username
+                    user_to_update = alchemy_session.query(User).filter_by(username=newusername).one()
+                    profile = Profile(user=user_to_update, name=user_to_update.username, dob=dob, sex=sex, email=email, address=address, number=number)
+                    alchemy_session.add(profile)
+                    alchemy_session.commit()
+                    print("test3")
+                    ##############################################################################
+
+                    msg = msg + "username changed to " + newusername
+                    selected_username = newusername
+                    print(msg)
+                except Exception as e:
+                    print(str(e))
+                    alchemy_session.rollback()
+                    logging.error(str(e))
+                    session['alerts'] = str(e)
+                    return redirect("/settings")
     else:
-        msg = msg + "<br /> username is none"
-    if password != "" and password is not None:
+        msg = msg + "username is none"
+
+    if newpassword != "" and newpassword is not None:
         try:
-            data = alchemy_session.query(User).filter_by(username=username).one()
-            if password == data.password:
-                msg = msg + "<br /> Same Password."
+            data = alchemy_session.query(User).filter_by(username=selected_username).one()
+            if newpassword == data.password:
+                pass
             else:
-                data.password = password
+                data.password = newpassword
                 alchemy_session.add(data)
                 alchemy_session.commit()
+                msg = msg + "Password changed."
         except Exception as e:
+            print(str(e))
+            alchemy_session.rollback()
             logging.error(str(e))
             session['alerts'] = str(e)
             return redirect("/settings")
         
-    msg = msg + "<br /> Password changed."
     if newAdmin != "" and newAdmin is not None:
         try:
             data = alchemy_session.query(User).filter_by(username=str(newAdmin)).one()
             if data.type == "admin":
-                msg = msg + "<br /> Already admin "
+                msg = msg + "Already admin "
             else:
                 data.type = 'admin'
                 alchemy_session.commit()
-                msg = msg + "<br />" + newAdmin + " is now admin "
+                msg = msg + " " + newAdmin + " is now admin "
         except Exception as e:
+            alchemy_session.rollback()
             logging.error(str(e))
             session['alerts'] = str(e)
             return redirect("/settings")

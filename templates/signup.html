@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="author" content="@gureks">
-	<title>Sign Up | Flask-ERP | Gurek - Azhar</title>
+	<title>Sign Up | Flask-ERP</title>
 	<link rel="stylesheet" href="{{ url_for('static',filename='css/bootstrap.min.css') }}">
 	<link rel="stylesheet" href="{{ url_for('static',filename='css/style.css') }}">
 	<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -38,17 +38,18 @@
 			<input type="email" name="email" id="email" class="form-control" placeholder="Email" required validate>
 			<label for="number" class="sr-only">Phone Number</label>
 			<input type="text" name="number" id="number" class="form-control" placeholder="Number" required>
-			<!-- <div class="checkbox">
-			
-				<label>
-					<input type="checkbox" value="remember-me"> Remember me
-				</label>
-			</div> -->
+			<h5 class="form-signin-heading" id="center">Date of Birthday</h3>
+			<label for="dob" class="sr-only">Date of Birthday</label>
+			<input type="datetime-local" id="dob" class="form-control" name="dob" placeholder="Date of Birthday">
+			<p><strong>Note:</strong> type="datetime-local" is not supported in Firefox, Safari or Internet Explorer 12 (or earlier).</p>
+
 			<button class="btn btn-primary btn-block" type="submit">Sign up</button>
 		</form>
 
+		<button class="btn btn-primary btn-block" type="button" onclick="document.location = '{{ url_for('index')}}';">Previous</button>
+		
 	</div> <!-- /container -->
-
+	
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
 	<script src="{{ url_for('static',filename='js/bootstrap.min.js') }}"></script>
 </body>
