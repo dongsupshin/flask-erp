@@ -16,7 +16,7 @@
 			</thead>
 			<tbody>
 				{% for i in users%}
-				<tr>
+				<tr onclick="document.location = '{{url_for('updateuser', username=i.username)}}';">
 					<!-- username -->
 					<td>{{i.username}}</td>
 					<!-- type -->

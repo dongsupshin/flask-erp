@@ -7,6 +7,7 @@ from database_setup import Base, engine, User, Profile, FacilityMaster, ProductM
     ItemStockMaster, RecipeMaster, ProductStatusMaster, ActiveLoginSession, uuid_url64, LoginHistory, Board
 from flask_bootstrap import Bootstrap
 from werkzeug.utils import secure_filename
+from werkzeug.exceptions import HTTPException
 from lib.upload_file import uploadfile
 from PIL import Image
 from inspect import currentframe, getframeinfo
@@ -51,6 +52,18 @@ IGNORED_FILES = set(['.gitignore'])
 
 bootstrap = Bootstrap(app)
 
+from werkzeug.exceptions import HTTPException
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    print('handle_exception : ', str(e))
+    # pass through HTTP errors
+    if isinstance(e, HTTPException):
+        return e
+
+    # now you're handling non-HTTP exceptions only
+    return render_template("500.html", e=e), 500
+
 def CheckActiveSession():
     try:
         activesessions = alchemy_session.query(ActiveLoginSession).all()
@@ -63,7 +76,7 @@ def CheckActiveSession():
 
             now = datetime.datetime.now()
             delta = now - last_login
-            print(row.username, delta.total_seconds(), now, last_login)
+            # print(row.username, delta.total_seconds(), now, last_login)
             if delta.total_seconds() > 3600 and now > last_login:
                 session_to_delete = alchemy_session.query(ActiveLoginSession).filter_by(id=row.id).one()
                 alchemy_session.delete(session_to_delete)
@@ -354,6 +367,17 @@ def users():
         return redirect('/')
     users = alchemy_session.query(User).filter_by(type='admin').all()
     return render_template("users.html", data=data, users=users)
+
+@app.route('/admin/users/<username>/update')
+def updateuser(username):
+    if 'username' not in session:
+        return redirect('/')
+    data = alchemy_session.query(User).filter_by(username=session['username']).one()
+    if "admin" not in data.type:
+        session['alerts'] = "you don't have access to this cause you're not an admin."
+        return redirect('/')
+    user = alchemy_session.query(User).filter_by(username=username).one()
+    return render_template("updateuser.html", data=data, user=user)
 
 @app.route('/products')
 def products():
@@ -1042,6 +1066,8 @@ def changesettings():
     username = request.form.get('username')
     password = request.form.get('password')
     newAdmin = request.form.get('newAdmin')
+    # print(username, password, newAdmin)
+    
     msg = " "
     if username != "" and username is not None:
         if username == session['username']:
@@ -1064,12 +1090,19 @@ def changesettings():
     else:
         msg = msg + "<br /> username is none"
     if password != "" and password is not None:
-        data = alchemy_session.query(User).filter_by(username=username).one()
-        if password == data.password:
-            msg = msg + "<br /> Same Password."
-        else:
-            data.password = password
-            alchemy_session.commit()
+        try:
+            data = alchemy_session.query(User).filter_by(username=username).one()
+            if password == data.password:
+                msg = msg + "<br /> Same Password."
+            else:
+                data.password = password
+                alchemy_session.add(data)
+                alchemy_session.commit()
+        except Exception as e:
+            logging.error(str(e))
+            session['alerts'] = str(e)
+            return redirect("/settings")
+        
     msg = msg + "<br /> Password changed."
     if newAdmin != "" and newAdmin is not None:
         try:

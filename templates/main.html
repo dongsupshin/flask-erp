@@ -42,24 +42,32 @@
 				<h4>Account type: {{ session['type'] }}</h4><br />
 				<ul class="nav nav-sidebar">
 					<li class="active"><a href="/dashboard">Overview <span class="sr-only">(current)</span></a></li>
-					{% if session['type']|string() == "admin" %}
+                    {% if session['type']|string() == "admin" %}
 					<li><a href="/admin/users">Users</a></li>
-					{% endif %}
 					<li><a href="/profiles">Profiles</a></li>
+					{% endif %}
 					<li><a href="/settings">Settings</a></li>
 					<li><a href="/products">Products</a></li>
+					{% if session['type']|string() == "admin" %}
 					<li><a href="/newproduct">New Product</a></li>
 					<li><a href="/addproduct">Add Product</a></li>
+					{% endif %}
 					<li><a href="/showproductstatus">Show Product Status</a></li>
 					<li><a href="/showproductstock">Show Product Stock</a></li>
 					<li><a href="/items">Items</a></li>
+					{% if session['type']|string() == "admin" %}
 					<li><a href="/newitem">New Item</a></li>
+					{% endif %}
 					<li><a href="/recipes">Recipes</a></li>
+                    {% if session['type']|string() == "admin" %}
 					<li><a href="/newrecipe">New Recipe</a></li>
-					<li><a href="/filelist">File List</a></li>
+                    <li><a href="/filelist">File List</a></li>
+					{% endif %}
 					<li><a href="/showboard">Show Board</a></li>
+                    {% if session['type']|string() == "admin" %}
 					<li><a href="/activeloginsession">Active Login Session</a></li>
 					<li><a href="/loginhistory">Login History</a></li>
+					{% endif %}
 					<li><a href="/help">Help</a></li>
 					<li><a href="/logout">Logout</a></li>
 				</ul>							

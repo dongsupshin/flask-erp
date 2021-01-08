@@ -31,7 +31,11 @@
 			<tbody>
 				
 				{% for productstatus in productstatuses%}
+				{% if session['type']|string() == "admin" %}
 				<tr onclick="document.location = '{{ url_for('updateproductstatus', productstatus_id=productstatus.id)}}';">
+				{% else %}
+				<tr>
+				{% endif %}
 						<td>{{productstatus.id}}</td>
 						<td>{{productstatus.product_id}}</td>
 						<td>{{productstatus.product_name}}</td>
