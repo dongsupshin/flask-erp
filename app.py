@@ -14,7 +14,7 @@ import sys, os, PIL, simplejson, traceback, logging, datetime, json, datetime
 
 now = datetime.datetime.now()
 filename = "flask_erp_log.log"
-logging.basicConfig(filename=filename, level=logging.ERROR)
+logging.basicConfig(filename=filename, level=logging.DEBUG)
 
 def getFileName():
     frameinfo = getframeinfo(currentframe())
@@ -55,6 +55,7 @@ def CheckActiveSession():
     try:
         activesessions = alchemy_session.query(ActiveLoginSession).all()
         for row in activesessions:
+            last_login = None
             if row.time_updated:
                 last_login = row.time_updated
             else:
@@ -62,12 +63,15 @@ def CheckActiveSession():
 
             now = datetime.datetime.now()
             delta = now - last_login
-            if delta.seconds > 3600 and now > last_login:
+            print(row.username, delta.total_seconds(), now, last_login)
+            if delta.total_seconds() > 3600 and now > last_login:
                 session_to_delete = alchemy_session.query(ActiveLoginSession).filter_by(id=row.id).one()
                 alchemy_session.delete(session_to_delete)
                 alchemy_session.commit()
     except Exception as e:
+        alchemy_session.rollback()
         logging.error(str(e))
+        print(str(e))
 
 @app.before_request
 def before_request():
