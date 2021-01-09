@@ -8,7 +8,6 @@ from flask_bootstrap import Bootstrap
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import HTTPException
 from lib.upload_file import uploadfile
-from PIL import Image
 from common import GetFileName, GetLineNumber, ALLOWED_EXTENSIONS, IGNORED_FILES, allowed_file, gen_file_name, create_thumbnail
 import sys, os, PIL, simplejson, traceback, logging, datetime, json, datetime
 
