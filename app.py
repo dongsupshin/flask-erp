@@ -987,13 +987,51 @@ def updateitem(item_id):
         return render_template('updateitem.html', data=data, alert=alert, itemstock=itemstock)
     else:
         quantity = request.form.get('quantity')
-        itemstock = alchemy_session.query(ItemStockMaster).filter_by(id=item_id).one()
+        itemstock = alchemy_session.query(ItemStockMaster).filter_by(item_id=item_id).one()
         itemstock.stock = quantity
+        itemstock.item_name = request.form.get('itemname')
         now = datetime.datetime.now()
         itemstock.time_updated = now
         alchemy_session.add(itemstock)
         alchemy_session.commit()
+
+        itemname = request.form.get('itemname')
+        item = alchemy_session.query(ItemMaster).filter_by(id=item_id).one()
+        item.name = itemname
+        alchemy_session.add(item)
+        alchemy_session.commit()
+
         return redirect('/items')
+
+@app.route('/updateproduct/<product_id>/', methods=['GET', 'POST'])
+def updateproduct(product_id):
+    if 'username' not in session:
+        return redirect('/')
+    
+    items = []
+    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
+        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
+        items.append(item)
+    data = items[0]
+
+    if request.method == "GET":
+        if data is None:
+            return abort(404)
+        if 'alerts' in session:
+            alert = session['alerts']
+            session.pop('alerts')
+        else:
+            alert = None
+
+        product = alchemy_session.query(ProductMaster).filter_by(id=product_id).one()
+        return render_template('updateproduct.html', data=data, alert=alert, product=product)
+    else:
+        productname = request.form.get('productname')
+        product = alchemy_session.query(ProductMaster).filter_by(id=product_id).one()
+        product.name = productname
+        alchemy_session.add(product)
+        alchemy_session.commit()
+        return redirect('/products')
 
 @app.route('/showproductstock', methods=['GET'])
 def showproductstock():

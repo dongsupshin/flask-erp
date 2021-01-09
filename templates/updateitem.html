@@ -2,7 +2,7 @@
 {% block content %}
 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
 	<br />
-	<h1 class="page-header">Update Item Stock</h1>
+	<h1 class="page-header">Update Item</h1>
 	<hr style="border-color: black;">
 	{% if alert %}
 	<div class="alert alert-info alert-dismissible" role="alert">
@@ -16,6 +16,7 @@
 					<tr>
 						<th>id</th>
 						<th>item_id</th>
+						<th>item_name</th>
 						<th>stock</th>
 					</tr>
 				</thead>
@@ -23,6 +24,7 @@
 					<tr>
 						<td>{{itemstock.id}}</td>
 						<td>{{itemstock.item_id}}</td>
+						<td>{{itemstock.item_name}}</td>
 						<td>{{itemstock.stock}}</td>
 					</tr>
 				</tbody>
@@ -30,10 +32,13 @@
 
 	</div>
 
-		<form class="form-signin" action="/updateitemstock/{{itemstock.item_id}}/" method="POST">
+		<form class="form-signin" action="/updateitem/{{itemstock.item_id}}/" method="POST">
+			<h3 class="form-signin-heading" id="center">Item Name</h3>
+			<label for="inputItemName" class="sr-only">Item Name</label>
+			<input type="text" name="itemname" id="inputItemName" class="form-control" placeholder="Item Name" value="{{itemstock.item_name}}">	
 			<h3 class="form-signin-heading" id="center">Quantity</h3>
 			<label for="InputQuantity" class="sr-only"></label>
-			<input type="number" id="InputQuantity" name="quantity">
+			<input type="number" id="InputQuantity" name="quantity" value={{itemstock.stock}}>
 			<h3 class="form-signin-heading"></h3>
 			<button class="btn btn-primary btn-block" type="submit">Update</button>
 		</form>		

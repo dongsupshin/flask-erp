@@ -107,6 +107,7 @@ class ItemStockMaster(Base):
     id = Column(Integer, Sequence(__tablename__ + '_seq'), primary_key=True)
     item = relationship(ItemMaster)
     item_id = Column(Integer, ForeignKey('item_master.id'), unique=True)
+    item_name = Column(String(256), nullable=False)
     stock = Column(Integer, nullable=False, default=0)
 
     time_created = Column(DateTime(timezone=True), server_default=func.now())

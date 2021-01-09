@@ -1,0 +1,46 @@
+{% extends "main.html" %}
+{% block content %}
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+	<br />
+	<h1 class="page-header">Update Product</h1>
+	<hr style="border-color: black;">
+	{% if alert %}
+	<div class="alert alert-info alert-dismissible" role="alert">
+		<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+		<strong>Heads, up!</strong> {{ alert }}
+	</div>
+	{% endif %}
+	<div class="table-responsive">
+			<table class="table table-striped">
+				<thead>
+					<tr>
+						<th>id</th>
+						<th>name</th>
+						<th>time_created</th>
+						<th>time_updated</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>{{product.id}}</td>
+						<td>{{product.name}}</td>
+						<td>{{product.time_created}}</td>
+						<td>{{product.time_updated}}</td>
+					</tr>
+				</tbody>
+			</table>
+
+	</div>
+
+	<form class="form-signin" action="/updateproduct/{{product.id}}/" method="POST">
+		<h3 class="form-signin-heading" id="center">Change Product Name</h3>
+		<label for="inputProductName" class="sr-only">Product Name</label>
+		<input type="text" name="productname" id="inputProductName" class="form-control" placeholder="Product Name" value="{{product.name}}">
+		<button class="btn btn-primary btn-block" type="submit">Update</button>
+	</form>		
+
+	<button class="btn btn-primary" type="button" onclick="document.location = '{{ url_for('products')}}';">
+			Previous
+	</button>
+</div>
+{% endblock %}

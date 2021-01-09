@@ -64,7 +64,7 @@ item1 = ItemMaster(name="item_1")
 session.add(item1)
 session.commit()
 
-itemstock1 = ItemStockMaster(item=item1, stock=100)
+itemstock1 = ItemStockMaster(item=item1, stock=100, item_name=item1.name)
 session.add(itemstock1)
 session.commit()
 
@@ -72,7 +72,7 @@ item2 = ItemMaster(name="item_2")
 session.add(item2)
 session.commit()
 
-itemstock2 = ItemStockMaster(item=item2, stock=100)
+itemstock2 = ItemStockMaster(item=item2, stock=100, item_name=item2.name)
 session.add(itemstock2)
 session.commit()
 
