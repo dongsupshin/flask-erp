@@ -14,23 +14,23 @@ from inspect import currentframe, getframeinfo
 import sys, os, PIL, simplejson, traceback, logging, datetime, json, datetime
 
 now = datetime.datetime.now()
-# filename = "flask_erp_log.log"
-# logging.basicConfig(filename=filename, level=logging.DEBUG)
+filename = "flask_erp_log.log"
+logging.basicConfig(filename=filename, level=logging.DEBUG)
 
 app = Flask('__name__')
 app.config['SECRET_KEY'] = os.urandom(20)
-app.config['MYSQL_DATABASE_USER'] = 'dbms'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'justanothersecret'
-app.config['MYSQL_DATABASE_DB'] = 'erp'
-app.config['MYSQL_DATABASE_HOST'] = 'localhost'
+# app.config['MYSQL_DATABASE_USER'] = 'dbms'
+# app.config['MYSQL_DATABASE_PASSWORD'] = 'justanothersecret'
+# app.config['MYSQL_DATABASE_DB'] = 'erp'
+# app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 app.config['UPLOAD_FOLDER'] = 'data/'
 app.config['THUMBNAIL_FOLDER'] = 'data/thumbnail/'
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 
-mysql = MySQL()
-mysql.init_app(app)
-mysqlconn = mysql.connect()
-mysqlcursor = mysqlconn.cursor()
+# mysql = MySQL()
+# mysql.init_app(app)
+# mysqlconn = mysql.connect()
+# mysqlcursor = mysqlconn.cursor()
 
 # Connect to Database and create database session
 Base.metadata.bind = engine
@@ -1092,23 +1092,30 @@ def showproductstock():
 def dashboard():
     if 'username' not in session:
         return redirect('/')
-    mysqlcursor.execute(
-        "SELECT username FROM user WHERE NOT EXISTS (SELECT * FROM profile WHERE user.username = profile.username)")
-    data = mysqlcursor.fetchone()
-    if data is not None:
-        if session['username'] in data:
-            mysqlcursor.execute("DELETE FROM user WHERE username = '" + session['username'] + "'")
-            mysqlcursor.commit()
+
+    data = None
+    users = alchemy_session.query(User).all()
+    for user in users:
+        username = user.username
+        if session['username'] not in username:
+            continue
+        
+        try:            
+            profile = alchemy_session.query(Profile).filter_by(username=username).one()
+            data = alchemy_session.query(User).filter_by(username=username).one()
+            break
+        except Exception as e:
+            print(str(e))
+            logging.error(str(e))
+            alchemy_session.delete(user)
+            alchemy_session.commit()
             session.pop('username')
             session.pop('type')
             return "Your details are not filled. Please sign up again <a href=\"/signup\">here</a>. Account has been suspended."
-    items = []
-    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
-        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
-        items.append(item)
-    data = items[0]
+    
     if data is None:
         return abort(404)
+
     return render_template("dashboard.html", data=data)
 
 
@@ -1132,12 +1139,12 @@ def changesettings():
         msg = " "
         if newusername != "" and newusername is not None:
             if newusername == selected_username:
-                msg = msg + ' username is same'
+                msg = msg + ' username is same.'
                 pass
             else:
                 try:
                     data = alchemy_session.query(User).filter_by(username=newusername).one()
-                    msg = msg + " username already exists"
+                    msg = msg + " username already exists."
                 except Exception as e:
                     # this is not error, update user and profile
                     try:
@@ -1181,7 +1188,7 @@ def changesettings():
                             alchemy_session.commit()
                         ##############################################################################
 
-                        msg = msg + " username changed to " + newusername
+                        msg = msg + " username changed to " + newusername + '.'
                         selected_username = newusername
                     except Exception as e:
                         alchemy_session.rollback()

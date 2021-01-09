@@ -35,6 +35,10 @@ class Profile(Base):
     email = Column(String(256))
     address = Column(String(256))
     number = Column(String(256))
+    iso_country_code = Column(String(3), nullable=False, default="KOR")
+    address_area_code = Column(String(256), nullable=True)
+    address_wgs84_x = Column(String(256), nullable=True)
+    address_wgs84_y = Column(String(256), nullable=True)
 
     time_created = Column(DateTime(timezone=True), server_default=func.now())
     time_updated = Column(DateTime(timezone=True), onupdate=func.now())
