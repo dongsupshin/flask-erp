@@ -63,7 +63,7 @@ def before_request():
     if ('type' in key_list) == True:
         type = session['type']
     if ('last_active' in key_list) == False:
-        now = datetime.datetime.now()
+        now = datetime.datetime.utcnow()
         session['last_active'] = now
 
     try:
@@ -72,7 +72,7 @@ def before_request():
         alchemy_session.add(loginhistory)
         alchemy_session.commit()
         # update login active session
-        now = datetime.datetime.now()
+        now = datetime.datetime.utcnow()
         session['last_active'] = now
         if ('token' in key_list) == True:
             active_login_session = alchemy_session.query(ActiveLoginSession).filter_by(token=str(session['token'])).one()
@@ -87,7 +87,7 @@ def before_request():
     # check session expiration
     try:
         last_active = session['last_active']
-        now = datetime.datetime.now()
+        now = datetime.datetime.utcnow()
         delta = now - last_active
         if delta.seconds > 3600:
             session['last_active'] = now
@@ -101,18 +101,21 @@ def CheckActiveSession():
     try:
         activesessions = alchemy_session.query(ActiveLoginSession).all()
         for row in activesessions:
+            print(row)
             last_login = None
             if row.time_updated:
                 last_login = row.time_updated
             else:
                 last_login = row.time_created
 
-            now = datetime.datetime.now()
+            now = datetime.datetime.utcnow()
             delta = now - last_login
+            print(now, last_login, delta.total_seconds())
             if delta.total_seconds() > 3600 and now > last_login:
                 session_to_delete = alchemy_session.query(ActiveLoginSession).filter_by(id=row.id).one()
                 alchemy_session.delete(session_to_delete)
                 alchemy_session.commit()
+                print('session deleted')
     except Exception as e:
         alchemy_session.rollback()
         logging.error(str(e))
@@ -295,10 +298,12 @@ def login():
             alchemy_session.rollback()
             logging.error(str(e))
 
-        new_login_session = ActiveLoginSession(user=user, token=str(uuid_url64()))
+        token = str(uuid_url64())
+        new_login_session = ActiveLoginSession(user=user, token=token)
         alchemy_session.add(new_login_session)
         alchemy_session.commit()
-        session['token'] = new_login_session.token
+        session['token'] = token
+        print('token created', token)
         return redirect('/dashboard')
     except Exception as e:
         alchemy_session.rollback()
@@ -602,8 +607,6 @@ def updaterecipe(recipe_id):
     if request.method == "POST":
         try:
             recipe = alchemy_session.query(RecipeMaster).filter_by(id=recipe_id).one()
-            now = datetime.datetime.now()
-            recipe.time_updated = now
             recipe.item_list_in_json = json.dumps(request.json)
             alchemy_session.add(recipe)
             alchemy_session.commit()
@@ -692,7 +695,7 @@ def addproduct():
             product = alchemy_session.query(ProductMaster).filter_by(id=in_product).one()
             user = alchemy_session.query(User).filter_by(username=in_user).one()
             facility = alchemy_session.query(FacilityMaster).filter_by(id=in_facilities).one()
-            newproductstats = ProductStatusMaster(product=product, product_name=product.name, status="OnGoing", created_date=date_time_obj, user=user,
+            newproductstats = ProductStatusMaster(product=product, product_name=product.name, status="Idle", created_date=date_time_obj, user=user,
                                                 unit=in_unit, facility=facility, target_quantity=in_targetquantity,
                                                 quantity=0, recipe=recipe)
             alchemy_session.add(newproductstats)
@@ -848,8 +851,6 @@ def updateproductstatus(productstatus_id):
                 return abort(404, description=session['alerts'])
 
             productstatus.status = 'Finished'
-            now = datetime.datetime.now()
-            productstatus.time_updated = now
             alchemy_session.add(productstatus)
             alchemy_session.commit()
 
@@ -876,8 +877,6 @@ def updateproductstatus(productstatus_id):
             try:
                 productstock = alchemy_session.query(ProductStockMaster).filter_by(id=productstock.id).one()
                 productstock.stock = stock
-                now = datetime.datetime.now()
-                productstock.time_updated = now
                 alchemy_session.add(productstock)
                 alchemy_session.commit()
             except Exception as e:
@@ -893,8 +892,6 @@ def updateproductstatus(productstatus_id):
                     item_stock_in_db = alchemy_session.query(ItemStockMaster).filter_by(item_id=item.id).one()
                     stock = int(item_stock_in_db.stock) - int(item_stock_to_be_required)
                     item_stock_in_db.stock = stock
-                    now = datetime.datetime.now()
-                    item_stock_in_db.time_updated = now
                     alchemy_session.add(item_stock_in_db)
                     alchemy_session.commit()
                 except Exception as e:
@@ -907,6 +904,13 @@ def updateproductstatus(productstatus_id):
 
         if is_cancel_commit == 'True':
             if productstatus.status in ('OnGoing'):
+                productstatus.status = 'Idle'
+                productstatus.quantity = 0
+                alchemy_session.add(productstatus)
+                alchemy_session.commit()
+                return redirect('/showproductstatus')
+
+            if productstatus.status in ('Idle'):
                 session['alerts'] = 'productstatus ' + str(productstatus.id) + ' has been already canceled.'
                 return abort(404, description=session['alerts'])
 
@@ -914,11 +918,8 @@ def updateproductstatus(productstatus_id):
                 session['alerts'] = 'recipe.item_list_in_json ' + str(recipe.id) + ' is empty.'
                 return abort(404, description=session['alerts'])
             
-
             productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
-            productstatus.status = 'OnGoing'
-            now = datetime.datetime.now()
-            productstatus.time_updated = now
+            productstatus.status = 'Idle'
             alchemy_session.add(productstatus)
             alchemy_session.commit()
             
@@ -929,8 +930,6 @@ def updateproductstatus(productstatus_id):
             
             productstock = alchemy_session.query(ProductStockMaster).filter_by(id=productstock.id).one()
             productstock.stock = stock
-            now = datetime.datetime.now()
-            productstock.time_updated = now
             alchemy_session.add(productstock)
             alchemy_session.commit()
 
@@ -943,8 +942,6 @@ def updateproductstatus(productstatus_id):
                 stock = int(item_stock_in_db.stock) + int(item_stock_to_be_required)
                 
                 item_stock_in_db.stock = stock
-                now = datetime.datetime.now()
-                item_stock_in_db.time_updated = now
                 alchemy_session.add(item_stock_in_db)
                 alchemy_session.commit()
 
@@ -957,8 +954,7 @@ def updateproductstatus(productstatus_id):
         else:            
             productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
             productstatus.quantity = quantity
-            now = datetime.datetime.now()
-            productstatus.time_updated = now
+            productstatus.status = 'OnGoing'
             alchemy_session.add(productstatus)
             alchemy_session.commit()
             return redirect('/showproductstatus')
@@ -990,8 +986,6 @@ def updateitem(item_id):
         itemstock = alchemy_session.query(ItemStockMaster).filter_by(item_id=item_id).one()
         itemstock.stock = quantity
         itemstock.item_name = request.form.get('itemname')
-        now = datetime.datetime.now()
-        itemstock.time_updated = now
         alchemy_session.add(itemstock)
         alchemy_session.commit()
 
@@ -1121,7 +1115,7 @@ def changesettings():
                             id = active_session.id
                             token = active_session.token
                             time_created = active_session.time_created
-                            now = datetime.datetime.now()
+                            now = datetime.datetime.utcnow()
                             time_updated = now
                             alchemy_session.delete(active_session)
                             alchemy_session.commit()
