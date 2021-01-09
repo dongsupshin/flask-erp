@@ -171,7 +171,7 @@ class LoginHistory(Base):
     remote_address = Column(String(1024), nullable=False)
     error_log = Column(String(1024), nullable=True, default='')
     login_time = Column(DateTime(timezone=True), server_default=func.now())
-    
+
     time_created = Column(DateTime(timezone=True), server_default=func.now())
     time_updated = Column(DateTime(timezone=True), onupdate=func.now())
     
@@ -189,7 +189,7 @@ class Board(Base):
     updated_date = Column(DateTime(timezone=True), onupdate=func.now())
 
 # engine = create_engine('mysql://dbms:justanothersecret@localhost/erp?charset=utf8', convert_unicode=False, pool_size=200, max_overflow=0)
-engine = create_engine('sqlite:///erp.db')
+engine = create_engine('sqlite:///erp.db', connect_args={'check_same_thread': False})
 
 # Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(engine)

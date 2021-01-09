@@ -11,8 +11,8 @@ from lib.upload_file import uploadfile
 from common import GetFileName, GetLineNumber, ALLOWED_EXTENSIONS, IGNORED_FILES, allowed_file, gen_file_name, create_thumbnail
 import sys, os, PIL, simplejson, traceback, logging, datetime, json, datetime
 
-filename = "flask_erp_log.log"
-logging.basicConfig(filename=filename, level=logging.DEBUG)
+# filename = "flask_erp_log.log"
+# logging.basicConfig(filename=filename, level=logging.DEBUG)
 
 app = Flask('__name__')
 app.config['SECRET_KEY'] = os.urandom(20)
