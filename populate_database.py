@@ -51,7 +51,7 @@ product1 = ProductMaster(id=str(uuid_url64()), name="prod_1")
 session.add(product1)
 session.commit()
 
-productstock1 = ProductStockMaster(product=product1, stock=100)
+productstock1 = ProductStockMaster(product=product1, stock=100, product_name = product1.name)
 session.add(productstock1)
 session.commit()
 

@@ -84,7 +84,7 @@ class ProductStockMaster(Base):
     id = Column(Integer, Sequence(__tablename__ + '_seq'), primary_key=True)
     product = relationship(ProductMaster)
     product_id = Column(String(256), ForeignKey('product_master.id'))
-    product_name = Column(String(256))
+    product_name = Column(String(256), nullable=False)
     stock = Column(Integer, nullable=False)
 
     time_created = Column(DateTime(timezone=False), server_default=func.now())

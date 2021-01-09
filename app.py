@@ -26,101 +26,99 @@ Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 alchemy_session = DBSession()
 
- 
+@app.errorhandler(404)
+def page_not_found(e):
+    logging.error(str(e))
+    alert = None
+    if 'alerts' in session:
+        alert = session['alerts']
+    
+    if alert:
+        alert += ', ' + str(e)
+    else:
+        alert = str(e)
+
+    return render_template('404.html', alert=alert), 404
+
 @app.errorhandler(Exception)
 def handle_exception(e):
+    logging.error(str(e))
     alchemy_session.rollback()
-
-    # pass through HTTP errors
-    if isinstance(e, HTTPException):
-        return e
 
     alert = None
     if 'alerts' in session:
         alert = session['alerts']
+    if alert:
+        alert += ' ' + str(e)
+    else:
+        alert = str(e)
+
+    # pass through HTTP errors
+    if isinstance(e, HTTPException):
+        return render_template("500.html", alert=alert), 500
 
     # now you're handling non-HTTP exceptions only
-    return render_template("wrong-access.html", alert=alert, error=str(e)), 500
+    if alert:
+        alert += ' ' + 'non-HTTP exceptions'
+    else:
+        alert = 'non-HTTP exceptions'
+
+    return render_template("500.html", alert=alert), 500
 
 @app.before_request
 def before_request():
-    CheckActiveSession()
-
     ######################################
     # [TBD]
     if str(request.path).split('/')[1] in ('static', 'upload'):
         return
     ######################################
 
-    key_list = []
-    for key in session:
-        key_list.append(key)
-    
-    username = ''
-    type = ''
-    if ('username' in key_list) == True:
+    username = None
+    if ('username' in session) == True:
         username = session['username']
-    if ('type' in key_list) == True:
-        type = session['type']
-    if ('last_active' in key_list) == False:
-        now = datetime.datetime.utcnow()
-        session['last_active'] = now
-
-    try:
+        CheckActiveSession()
         user = alchemy_session.query(User).filter_by(username=username).one()
         loginhistory = LoginHistory(id=str(uuid_url64()), user=user, request_url=request.url, remote_address=request.remote_addr)
         alchemy_session.add(loginhistory)
         alchemy_session.commit()
-        # update login active session
+    if ('last_active' in session) == False:
         now = datetime.datetime.utcnow()
         session['last_active'] = now
-        if ('token' in key_list) == True:
-            active_login_session = alchemy_session.query(ActiveLoginSession).filter_by(token=str(session['token'])).one()
-            active_login_session.time_updated = session['last_active']
-            alchemy_session.add(active_login_session)
-            alchemy_session.commit()
-    except Exception as e:
-        alchemy_session.rollback()
-        logging.error(str(e))
-        return
+
+    # update login active session
+    now = datetime.datetime.utcnow()
+    session['last_active'] = now
+    if ('token' in session) == True:
+        active_login_session = alchemy_session.query(ActiveLoginSession).filter_by(token=str(session['token'])).one()
+        active_login_session.time_updated = session['last_active']
+        alchemy_session.add(active_login_session)
+        alchemy_session.commit()
     
     # check session expiration
-    try:
-        last_active = session['last_active']
-        now = datetime.datetime.utcnow()
-        delta = now - last_active
-        if delta.seconds > 3600:
-            session['last_active'] = now
-            session['alerts'] = "Your session has expired after 30 minutes, you have been logged out"
-            disconnect()
-    except Exception as e:
-        alchemy_session.rollback()
-        pass
+    last_active = session['last_active']
+    now = datetime.datetime.utcnow()
+    delta = now - last_active
+    if delta.seconds > 3600:
+        session['last_active'] = now
+        session['alerts'] = "Your session has expired after 30 minutes, you have been logged out"
+        disconnect()
 
 def CheckActiveSession():
-    try:
-        activesessions = alchemy_session.query(ActiveLoginSession).all()
-        for row in activesessions:
-            print(row)
-            last_login = None
-            if row.time_updated:
-                last_login = row.time_updated
-            else:
-                last_login = row.time_created
+    activesessions = alchemy_session.query(ActiveLoginSession).all()
+    for row in activesessions:
+        last_login = None
+        if row.time_updated:
+            last_login = row.time_updated
+        else:
+            last_login = row.time_created
 
-            now = datetime.datetime.utcnow()
-            delta = now - last_login
-            print(now, last_login, delta.total_seconds())
-            if delta.total_seconds() > 3600 and now > last_login:
-                session_to_delete = alchemy_session.query(ActiveLoginSession).filter_by(id=row.id).one()
-                alchemy_session.delete(session_to_delete)
-                alchemy_session.commit()
-                print('session deleted')
-    except Exception as e:
-        alchemy_session.rollback()
-        logging.error(str(e))
-        print(str(e))
-
+        now = datetime.datetime.utcnow()
+        delta = now - last_login
+        if delta.total_seconds() > 3600:
+            session_to_delete = alchemy_session.query(ActiveLoginSession).filter_by(id=row.id).one()
+            alchemy_session.delete(session_to_delete)
+            alchemy_session.commit()
+            
 @app.route("/upload", methods=['GET', 'POST'])
 def upload():
     if request.method == 'POST':
@@ -289,21 +287,16 @@ def login():
         
         user = alchemy_session.query(User).filter_by(username=username).one()
 
-        try:
-            older_login_session = alchemy_session.query(ActiveLoginSession).filter_by(user=user).all()
-            for old in older_login_session:
-                alchemy_session.delete(old)
-                alchemy_session.commit()
-        except Exception as e:
-            alchemy_session.rollback()
-            logging.error(str(e))
+        older_login_session = alchemy_session.query(ActiveLoginSession).filter_by(user=user).all()
+        for old in older_login_session:
+            alchemy_session.delete(old)
+            alchemy_session.commit()
 
         token = str(uuid_url64())
         new_login_session = ActiveLoginSession(user=user, token=token)
         alchemy_session.add(new_login_session)
         alchemy_session.commit()
         session['token'] = token
-        print('token created', token)
         return redirect('/dashboard')
     except Exception as e:
         alchemy_session.rollback()
@@ -330,7 +323,6 @@ def updateuser(username):
     if "admin" not in data.type:
         session['alerts'] = "you don't have access to this cause you're not an admin."
         return redirect('/')
-    print('test : ', username)
     user = alchemy_session.query(User).filter_by(username=username).one()
     return render_template("updateuser.html", data=data, user=user)
 
@@ -498,7 +490,6 @@ def updateprofile(username):
         address = request.form.get('address')
         email = request.form.get('email')
         number = request.form.get('number')
-        # print(name, sex, dob, address, email, number)
 
         profile = alchemy_session.query(Profile).filter_by(username=selected_username).one()
         profile.name = name
@@ -522,14 +513,9 @@ def logout():
     if 'username' not in session:
         return redirect('/')
 
-    try:
-        session_to_delete = alchemy_session.query(ActiveLoginSession).filter_by(token=session['token']).one()
-        alchemy_session.delete(session_to_delete)
-        alchemy_session.commit()
-    except Exception as e:
-        alchemy_session.rollback()
-        logging.error(str(e))
-        pass
+    session_to_delete = alchemy_session.query(ActiveLoginSession).filter_by(token=session['token']).one()
+    alchemy_session.delete(session_to_delete)
+    alchemy_session.commit()
 
     session.pop('username')
     session.pop('type')
@@ -565,7 +551,6 @@ def newrecipe():
 
     if request.method == "POST":
         recipename = request.form.get('recipename')
-        user = request.form.get('user')
         detail = request.form.get('detail')
         product_id = request.form.get('product')
 
@@ -804,10 +789,8 @@ def showboard():
         if data is None:
             return abort(404)
         if 'alerts' in session:
-            alert = session['alerts']
             session.pop('alerts')
         else:
-            alert = None
             boards = alchemy_session.query(Board).all()
             return render_template("board.html", data=data, boards=boards)
 
@@ -1025,6 +1008,11 @@ def updateproduct(product_id):
         product.name = productname
         alchemy_session.add(product)
         alchemy_session.commit()
+
+        productstock = alchemy_session.query(ProductStockMaster).filter_by(product_id=product_id).one()
+        productstock.product_name = productname
+        alchemy_session.add(productstock)
+        alchemy_session.commit()
         return redirect('/products')
 
 @app.route('/showproductstock', methods=['GET'])
@@ -1066,7 +1054,6 @@ def dashboard():
             data = alchemy_session.query(User).filter_by(username=username).one()
             break
         except Exception as e:
-            print(str(e))
             logging.error(str(e))
             alchemy_session.delete(user)
             alchemy_session.commit()
@@ -1093,7 +1080,6 @@ def changesettings():
         newusername = request.form.get('username')
         newpassword = request.form.get('password')
         newAdmin = request.form.get('newAdmin')
-        print(selected_username, newusername, newpassword, newAdmin)
         
         msg = " "
         if newusername != "" and newusername is not None:
@@ -1169,7 +1155,6 @@ def changesettings():
                     alchemy_session.commit()
                     msg = msg + "Password changed."
             except Exception as e:
-                print(str(e))
                 alchemy_session.rollback()
                 logging.error(str(e))
                 session['alerts'] = str(e)
