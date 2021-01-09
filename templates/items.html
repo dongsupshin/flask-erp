@@ -24,7 +24,7 @@
 			<tbody>
 				{% for item in items%}
 				{% if session['type']|string() == "admin" %}
-				<tr onclick="document.location = '{{ url_for('updateitemstock', item_id=item.id)}}';">
+				<tr onclick="document.location = '{{ url_for('updateitem', item_id=item.id)}}';">
 				{% else %}
 				<tr>
 				{% endif %}

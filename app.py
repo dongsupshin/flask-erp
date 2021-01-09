@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, redirect, session, abort, url_for, send_from_directory, jsonify
-from flaskext.mysql import MySQL
 from sqlalchemy import asc, desc, join
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.sqltypes import String
@@ -10,48 +9,25 @@ from werkzeug.utils import secure_filename
 from werkzeug.exceptions import HTTPException
 from lib.upload_file import uploadfile
 from PIL import Image
-from inspect import currentframe, getframeinfo
+from common import GetFileName, GetLineNumber, ALLOWED_EXTENSIONS, IGNORED_FILES, allowed_file, gen_file_name, create_thumbnail
 import sys, os, PIL, simplejson, traceback, logging, datetime, json, datetime
 
-now = datetime.datetime.now()
 filename = "flask_erp_log.log"
 logging.basicConfig(filename=filename, level=logging.DEBUG)
 
 app = Flask('__name__')
 app.config['SECRET_KEY'] = os.urandom(20)
-# app.config['MYSQL_DATABASE_USER'] = 'dbms'
-# app.config['MYSQL_DATABASE_PASSWORD'] = 'justanothersecret'
-# app.config['MYSQL_DATABASE_DB'] = 'erp'
-# app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 app.config['UPLOAD_FOLDER'] = 'data/'
 app.config['THUMBNAIL_FOLDER'] = 'data/thumbnail/'
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
-
-# mysql = MySQL()
-# mysql.init_app(app)
-# mysqlconn = mysql.connect()
-# mysqlcursor = mysqlconn.cursor()
+bootstrap = Bootstrap(app)
 
 # Connect to Database and create database session
 Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 alchemy_session = DBSession()
 
-# add flask file uploader
-ALLOWED_EXTENSIONS = set(
-    ['txt', 'gif', 'png', 'jpg', 'jpeg', 'bmp', 'rar', 'zip', '7zip', 'doc', 'docx', 'csv', 'xlsx'])
-IGNORED_FILES = set(['.gitignore'])
-
-bootstrap = Bootstrap(app)
-
-def getFileName():
-    frameinfo = getframeinfo(currentframe())
-    return frameinfo.filename
-
-def GetLineNumber():
-    cf = currentframe()
-    return cf.f_back.f_lineno
-
+ 
 @app.errorhandler(Exception)
 def handle_exception(e):
     alchemy_session.rollback()
@@ -66,27 +42,6 @@ def handle_exception(e):
 
     # now you're handling non-HTTP exceptions only
     return render_template("wrong-access.html", alert=alert, error=str(e)), 500
-
-def CheckActiveSession():
-    try:
-        activesessions = alchemy_session.query(ActiveLoginSession).all()
-        for row in activesessions:
-            last_login = None
-            if row.time_updated:
-                last_login = row.time_updated
-            else:
-                last_login = row.time_created
-
-            now = datetime.datetime.now()
-            delta = now - last_login
-            if delta.total_seconds() > 3600 and now > last_login:
-                session_to_delete = alchemy_session.query(ActiveLoginSession).filter_by(id=row.id).one()
-                alchemy_session.delete(session_to_delete)
-                alchemy_session.commit()
-    except Exception as e:
-        alchemy_session.rollback()
-        logging.error(str(e))
-        print(str(e))
 
 @app.before_request
 def before_request():
@@ -143,47 +98,26 @@ def before_request():
         alchemy_session.rollback()
         pass
 
-# Disconnect based on provider
-@app.route('/disconnect')
-def disconnect():
-    del session
-    return redirect(url_for('index'))
-
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-def gen_file_name(filename):
-    """
-    If file was exist already, rename it and return a new name
-    """
-
-    i = 1
-    while os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], filename)):
-        name, extension = os.path.splitext(filename)
-        filename = '%s_%s%s' % (name, str(i), extension)
-        i += 1
-
-    return filename
-
-
-def create_thumbnail(image):
+def CheckActiveSession():
     try:
-        base_width = 80
-        img = Image.open(os.path.join(app.config['UPLOAD_FOLDER'], image))
-        w_percent = (base_width / float(img.size[0]))
-        h_size = int((float(img.size[1]) * float(w_percent)))
-        img = img.resize((base_width, h_size), PIL.Image.ANTIALIAS)
-        img.save(os.path.join(app.config['THUMBNAIL_FOLDER'], image))
+        activesessions = alchemy_session.query(ActiveLoginSession).all()
+        for row in activesessions:
+            last_login = None
+            if row.time_updated:
+                last_login = row.time_updated
+            else:
+                last_login = row.time_created
 
-        return True
-
-    except:
-        logging.error(str(traceback.format_exc()))
-        return False
-
+            now = datetime.datetime.now()
+            delta = now - last_login
+            if delta.total_seconds() > 3600 and now > last_login:
+                session_to_delete = alchemy_session.query(ActiveLoginSession).filter_by(id=row.id).one()
+                alchemy_session.delete(session_to_delete)
+                alchemy_session.commit()
+    except Exception as e:
+        alchemy_session.rollback()
+        logging.error(str(e))
+        print(str(e))
 
 @app.route("/upload", methods=['GET', 'POST'])
 def upload():
@@ -248,22 +182,24 @@ def delete(filename):
         except:
             return simplejson.dumps({filename: 'False'})
 
-
 # serve static files
 @app.route("/thumbnail/<string:filename>", methods=['GET'])
 def get_thumbnail(filename):
     return send_from_directory(app.config['THUMBNAIL_FOLDER'], filename=filename)
 
-
 @app.route("/data/<string:filename>", methods=['GET'])
 def get_file(filename):
     return send_from_directory(os.path.join(app.config['UPLOAD_FOLDER']), filename=filename)
 
-
 @app.route('/fileuploader', methods=['GET', 'POST'])
 def fileuploader():
     return render_template('index_uploader.html')
-
+   
+# Disconnect based on provider
+@app.route('/disconnect')
+def disconnect():
+    del session
+    return redirect(url_for('index'))
 
 @app.route('/')
 def index():
@@ -276,13 +212,11 @@ def index():
 
     return render_template('index.html', alert=alert)
 
-
 @app.route('/index_uploader')
 def index_uploader():
     if 'username' in session:
         return redirect('/dashboard')
     return render_template('index_uploader.html')
-
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -335,7 +269,6 @@ def signup():
             return redirect("/")
         session['alerts'] = msg
         return redirect("/signup")
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -472,7 +405,6 @@ def items():
     
     return render_template("items.html", data=data, items=items, alert=alert)
 
-
 @app.route('/filelist')
 def filelist():
     if 'username' not in session:
@@ -599,7 +531,6 @@ def logout():
     session.pop('type')
     session.pop('token')
     return redirect('/')
-
 
 @app.route('/settings')
 def settings():
@@ -1033,8 +964,8 @@ def updateproductstatus(productstatus_id):
             alchemy_session.commit()
             return redirect('/showproductstatus')
 
-@app.route('/updateitemstock/<int:item_id>/', methods=['GET', 'POST'])
-def updateitemstock(item_id):
+@app.route('/updateitem/<int:item_id>/', methods=['GET', 'POST'])
+def updateitem(item_id):
     if 'username' not in session:
         return redirect('/')
 
@@ -1054,7 +985,7 @@ def updateitemstock(item_id):
             alert = None
 
         itemstock = alchemy_session.query(ItemStockMaster).filter_by(item_id=item_id).one()
-        return render_template('updateitemstock.html', data=data, alert=alert, itemstock=itemstock)
+        return render_template('updateitem.html', data=data, alert=alert, itemstock=itemstock)
     else:
         quantity = request.form.get('quantity')
         itemstock = alchemy_session.query(ItemStockMaster).filter_by(id=item_id).one()
@@ -1087,7 +1018,6 @@ def showproductstock():
         productstocks = alchemy_session.query(ProductStockMaster).order_by(ProductStockMaster.time_created.desc()).all()
         return render_template('showproductstock.html', data=data, alert=alert, productstocks=productstocks)
 
-
 @app.route('/dashboard')
 def dashboard():
     if 'username' not in session:
@@ -1118,11 +1048,9 @@ def dashboard():
 
     return render_template("dashboard.html", data=data)
 
-
 @app.route('/help')
 def help():
     return render_template("help.html")
-
 
 @app.route('/changesettings', methods=['GET', 'POST'])
 def changesettings():
