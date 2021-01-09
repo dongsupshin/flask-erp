@@ -2,7 +2,11 @@
 {% block content %}
 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
 	<br />
+	{% if session['type']|string() == "admin" %}
 	<h1 class="page-header">List of profiles</h1>
+	{% else %}
+	<h1 class="page-header">My Profile</h1>
+	{% endif %}
 	<hr style="border-color: black;">
 	<div class="table-responsive">
 		<table class="table table-striped">
@@ -19,18 +23,31 @@
 				</tr>
 			</thead>
 			<tbody>
-				{% for i in profiles%}
-				<tr>
-					<td>{{i.id}}</td>
-					<td>{{i.username}}</td>
-					<td>{{i.name}}</td>
-					<td>{{i.dob}}</td>
-					<td>{{i.sex}}</td>
-					<td>{{i.email}}</td>
-					<td>{{i.address}}</td>
-					<td>{{i.number}}</td>
-				</tr>
-				{% endfor %}
+				{% if session['type']|string() == "admin" %}
+					{% for i in profiles%}
+					<tr onclick="document.location = '{{ url_for('updateprofile', username=i.username)}}';">
+						<td>{{i.id}}</td>
+						<td>{{i.username}}</td>
+						<td>{{i.name}}</td>
+						<td>{{i.dob}}</td>
+						<td>{{i.sex}}</td>
+						<td>{{i.email}}</td>
+						<td>{{i.address}}</td>
+						<td>{{i.number}}</td>
+					</tr>
+					{% endfor %}
+				{% else %}
+					<tr onclick="document.location = '{{ url_for('updateprofile', username=profiles.username)}}';">
+						<td>{{profiles.id}}</td>
+						<td>{{profiles.username}}</td>
+						<td>{{profiles.name}}</td>
+						<td>{{profiles.dob}}</td>
+						<td>{{profiles.sex}}</td>
+						<td>{{profiles.email}}</td>
+						<td>{{profiles.address}}</td>
+						<td>{{profiles.number}}</td>
+					</tr>
+				{% endif %}
 			</tbody>
 		</table>
 	</div>

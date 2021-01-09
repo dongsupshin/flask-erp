@@ -14,16 +14,8 @@ from inspect import currentframe, getframeinfo
 import sys, os, PIL, simplejson, traceback, logging, datetime, json, datetime
 
 now = datetime.datetime.now()
-filename = "flask_erp_log.log"
-logging.basicConfig(filename=filename, level=logging.DEBUG)
-
-def getFileName():
-    frameinfo = getframeinfo(currentframe())
-    return frameinfo.filename
-
-def GetLineNumber():
-    cf = currentframe()
-    return cf.f_back.f_lineno
+# filename = "flask_erp_log.log"
+# logging.basicConfig(filename=filename, level=logging.DEBUG)
 
 app = Flask('__name__')
 app.config['SECRET_KEY'] = os.urandom(20)
@@ -52,10 +44,18 @@ IGNORED_FILES = set(['.gitignore'])
 
 bootstrap = Bootstrap(app)
 
-from werkzeug.exceptions import HTTPException
+def getFileName():
+    frameinfo = getframeinfo(currentframe())
+    return frameinfo.filename
+
+def GetLineNumber():
+    cf = currentframe()
+    return cf.f_back.f_lineno
 
 @app.errorhandler(Exception)
 def handle_exception(e):
+    alchemy_session.rollback()
+
     # pass through HTTP errors
     if isinstance(e, HTTPException):
         return e
@@ -79,7 +79,6 @@ def CheckActiveSession():
 
             now = datetime.datetime.now()
             delta = now - last_login
-            # print(row.username, delta.total_seconds(), now, last_login)
             if delta.total_seconds() > 3600 and now > last_login:
                 session_to_delete = alchemy_session.query(ActiveLoginSession).filter_by(id=row.id).one()
                 alchemy_session.delete(session_to_delete)
@@ -295,14 +294,15 @@ def signup():
             alert = session['alerts']
         else:
             alert = None
-        return render_template("signup.html", alert=alert)
+        
+        sex_list = ['Male', 'Female']
+        return render_template("signup.html", alert=alert, sex_list=sex_list)
     elif request.method == "POST":
         username = request.form.get('username')
         password = request.form.get('password')
         name = request.form.get('name')
         sex = request.form.get('sex')
         dob = request.form.get('dob')
-        dob = datetime.datetime.strptime(dob, '%Y-%m-%d')
         address = request.form.get('address')
         email = request.form.get('email')
         number = request.form.get('number')
@@ -539,12 +539,46 @@ def profiles():
     if 'username' not in session:
         return redirect('/')
     data = alchemy_session.query(User).filter_by(username=session['username']).one()
+    user = data
+    profiles = None
     if "admin" not in data.type:
-        session['alerts'] = "you don't have access to this cause you're not an admin."
-        return redirect('/')
-    profiles = alchemy_session.query(Profile).all()
-    return render_template("profiles.html", data=data, profiles=profiles)
+        profiles = alchemy_session.query(Profile).filter_by(username=user.username).one()
+    else:
+        profiles = alchemy_session.query(Profile).all()
 
+    return render_template("profiles.html", data=data, user=user, profiles=profiles)
+
+@app.route('/profiles/update/<username>', methods=['GET', 'POST'])
+def updateprofile(username):
+    if 'username' not in session:
+        return redirect('/')
+
+    if request.method == "POST":
+        selected_username = request.form.get('selected_username')
+        name = request.form.get('name')
+        sex = request.form.get('sex')
+        dob = request.form.get('dob')
+        address = request.form.get('address')
+        email = request.form.get('email')
+        number = request.form.get('number')
+        # print(name, sex, dob, address, email, number)
+
+        profile = alchemy_session.query(Profile).filter_by(username=selected_username).one()
+        profile.name = name
+        profile.sex = sex
+        profile.dob = dob
+        profile.address = address
+        profile.email = email
+        profile.number = number
+        alchemy_session.add(profile)
+        alchemy_session.commit()
+        
+        return redirect('/profiles')
+    else:
+        data = alchemy_session.query(User).filter_by(username=session['username']).one()
+        profile = alchemy_session.query(Profile).filter_by(username=username).one()
+        sex_list = ['Male', 'Female']
+        return render_template("updateprofile.html", data=data, profile=profile, sex_list=sex_list)
 
 @app.route('/logout')
 def logout():
@@ -584,7 +618,9 @@ def settings():
         session.pop('alerts')
     else:
         alert = None
-    return render_template('settings.html', data=data, alert=alert)
+
+    user = alchemy_session.query(User).filter_by(username=data['username']).one()
+    return render_template('settings.html', data=data, alert=alert, user=user)
 
 @app.route('/newrecipe', methods=['GET', 'POST'])
 def newrecipe():
@@ -712,7 +748,6 @@ def addproduct():
     if request.method == "POST":
         in_product = request.form.get('products')
         in_user = request.form.get('users')
-        in_recipes = request.form.get('recipes')
         in_targetquantity = request.form.get('targetquantity')
         in_unit = request.form.get('unit')
         in_facilities = request.form.get('facilities')
@@ -1089,7 +1124,6 @@ def changesettings():
     newusername = request.form.get('username')
     newpassword = request.form.get('password')
     newAdmin = request.form.get('newAdmin')
-    print(selected_username, newusername, newpassword, newAdmin)
     
     msg = " "
     if newusername != "" and newusername is not None:
@@ -1123,14 +1157,11 @@ def changesettings():
                     profile = Profile(user=user_to_update, name=user_to_update.username, dob=dob, sex=sex, email=email, address=address, number=number)
                     alchemy_session.add(profile)
                     alchemy_session.commit()
-                    print("test3")
                     ##############################################################################
 
                     msg = msg + "username changed to " + newusername
                     selected_username = newusername
-                    print(msg)
                 except Exception as e:
-                    print(str(e))
                     alchemy_session.rollback()
                     logging.error(str(e))
                     session['alerts'] = str(e)

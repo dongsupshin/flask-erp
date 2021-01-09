@@ -1,0 +1,76 @@
+{% extends "main.html" %}
+{% block content %}
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+	<br />
+	<h1 class="page-header">Update Profile</h1>
+	<hr style="border-color: black;">
+	{% if alert %}
+	<div class="alert alert-info alert-dismissible" role="alert">
+		<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+		<strong>Heads, up!</strong> {{ alert }}
+	</div>
+	{% endif %}
+	<div class="table-responsive">
+			<table class="table table-striped">
+				<thead>
+					<tr>
+						<th>username</th>
+						<th>name</th>
+						<td>dob</td>
+						<td>sex</td>
+						<td>email</td>
+						<td>address</td>
+						<td>number</td>
+						<th>time_created</th>
+						<th>time_updated</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>{{profile.username}}</td>
+						<td>{{profile.name}}</td>
+						<td>{{profile.dob}}</td>
+						<td>{{profile.sex}}</td>
+						<td>{{profile.email}}</td>
+						<td>{{profile.address}}</td>
+						<td>{{profile.number}}</td>
+						<td>{{profile.time_created}}</td>
+						<td>{{profile.time_updated}}</td>
+					</tr>
+				</tbody>
+			</table>
+
+	</div>
+
+	<div class="row">
+		<form class="form-signin" action="/profiles/update/{{profile.username}}" method="POST">
+			<input type="hidden" name="selected_username" value="{{profile.username}}">
+			<label for="inputName" class="sr-only">Name</label>
+			<input type="text" name="name" id="inputName" class="form-control" placeholder="name" value="{{profile.name}}">
+			
+			<label for="sex" class="sr-only">Sex(Male/Female)</label>
+			<select name="sex" id="sex" class="form-control" value="{{profile.sex}}">
+			{% for sex in sex_list%}
+				<option value="{{sex}}">{{sex}}</option>
+			{% endfor %}
+			</select>
+
+			<label for="address" class="sr-only">Address</label>
+			<input type="text" name="address" id="address" class="form-control" placeholder="Address" value="{{profile.address}}" required>
+			<label for="email" class="sr-only">Email</label>
+			<input type="email" name="email" id="email" class="form-control" placeholder="Email" value="{{profile.email}}" required validate>
+			<label for="number" class="sr-only">Phone Number</label>
+			<input type="text" name="number" id="number" class="form-control" placeholder="Number" value="{{profile.number}}" required>
+			<h5 class="form-signin-heading" id="center">Date of Birthday</h3>
+			<label for="dob" class="sr-only">Date of Birthday</label>
+			<input type="date" id="dob" class="form-control" name="dob" placeholder="Date of Birthday" value="{{profile.dob}}" required validate>
+			
+			<button class="btn btn-primary btn-block" type="submit">Save Changes</button>
+		</form>
+	</div>
+
+	<button class="btn btn-primary" type="button" onclick="document.location = '{{ url_for('profiles')}}';">
+			Previous
+	</button>
+</div>
+{% endblock %}

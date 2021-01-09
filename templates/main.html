@@ -44,8 +44,8 @@
 					<li class="active"><a href="/dashboard">Overview <span class="sr-only">(current)</span></a></li>
                     {% if session['type']|string() == "admin" %}
 					<li><a href="/admin/users">Users</a></li>
-					<li><a href="/profiles">Profiles</a></li>
 					{% endif %}
+					<li><a href="/profiles">Profiles</a></li>
 					<li><a href="/settings">Settings</a></li>
 					<li><a href="/products">Products</a></li>
 					{% if session['type']|string() == "admin" %}

@@ -10,6 +10,30 @@
 		<strong>Heads, up!</strong> {{ alert }}
 	</div>
 	{% endif %}
+	<div class="table-responsive">
+		<table class="table table-striped">
+			<thead>
+				<tr>
+					<th>id</th>
+					<th>type</th>
+					<th>time_created</th>
+					<th>time_updated</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<!-- username -->
+					<td>{{user.username}}</td>
+					<!-- type -->
+					<td>{{user.type}}</td>
+					<!-- time_created -->
+					<td>{{user.time_created}}</td>
+					<!-- time_updated -->
+					<td>{{user.time_updated}}</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
 	<div class="row">
 		<form class="form-signin" action="/changesettings" method="POST">
 			<input type="hidden" name="selected_username" value="{{data.username}}">
