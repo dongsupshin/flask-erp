@@ -29,6 +29,7 @@ alchemy_session = DBSession()
 @app.errorhandler(404)
 def page_not_found(e):
     logging.error(str(e))
+    alchemy_session.rollback()
     alert = None
     if 'alerts' in session:
         alert = session['alerts']
@@ -841,6 +842,7 @@ def updateproductstatus(productstatus_id):
 
             # plus stock
             item_list = []
+            print(recipe.item_list_in_json)
             if recipe.item_list_in_json is None:
                 session['alerts'] = 'recipe_id ' + str(productstatus.recipe_id) + ' : productstatus.item_list_in_json is None.'
                 return redirect('/showproductstatus')
@@ -849,22 +851,28 @@ def updateproductstatus(productstatus_id):
                 return redirect('/showproductstatus')
             else:
                 item_list = json.loads(recipe.item_list_in_json)
+                # check items availability
                 for row in item_list:
                     item = alchemy_session.query(ItemMaster).filter_by(name=row['item']).one()
                     item_stock_to_be_required = productstatus.quantity * int(row['quantity'])
                     item_stock_in_db = alchemy_session.query(ItemStockMaster).filter_by(item_id=item.id).one()
+                    print(item_stock_to_be_required, item_stock_in_db.stock)
                     if item_stock_to_be_required > item_stock_in_db.stock:
+                        print(item_stock_to_be_required, item_stock_in_db.stock)
                         session['alerts'] = 'item stock is not enough. ' + 'item_stock_to_be_required : ' + str(item_stock_to_be_required) + ', item_stock_in_db.stock : ' + str(item_stock_in_db.stock)
                         return redirect('/showproductstatus')
             
-            stock = int(productstock.stock) + int(productstatus.quantity)
- 
+            stock = int(productstock.stock) + int(productstatus.quantity) 
+            print('stock : ', stock)
             try:
                 productstock = alchemy_session.query(ProductStockMaster).filter_by(id=productstock.id).one()
                 productstock.stock = stock
                 alchemy_session.add(productstock)
+                print('test1')
                 alchemy_session.commit()
+                print('test2')
             except Exception as e:
+                print('test3')
                 alchemy_session.rollback()
                 logging.error(str(e))
                 session['alerts'] = 'you are not allowed to update the record.' + str(e)
@@ -905,6 +913,7 @@ def updateproductstatus(productstatus_id):
             
             productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
             productstatus.status = 'Idle'
+            productstatus.quantity = 0
             alchemy_session.add(productstatus)
             alchemy_session.commit()
             
