@@ -233,6 +233,15 @@ def index_uploader():
         return redirect('/dashboard')
     return render_template('index_uploader.html')
 
+def getuser():
+    items = []
+    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
+        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
+        items.append(item)
+    
+    user = items[0]
+    return user
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if 'username' in session:
@@ -347,13 +356,7 @@ def products():
     if 'username' not in session:
         return redirect('/')
 
-    items = []
-    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
-        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
-        items.append(item)
-    
-    data = items[0]
-
+    data = getuser()
     if data is None:
         return abort(404)
     if 'alerts' in session:
@@ -375,12 +378,7 @@ def recipes():
     if 'username' not in session:
         return redirect('/')
 
-    items = []
-    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
-        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
-        items.append(item)
-    data = items[0]
-    
+    data = getuser()
     if data is None:
         return abort(404)
     if 'alerts' in session:
@@ -397,11 +395,7 @@ def items():
     if 'username' not in session:
         return redirect('/')
 
-    items = []
-    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
-        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
-        items.append(item)
-    data = items[0]
+    data = getuser()
     if data is None:
         return abort(404)
     if 'alerts' in session:
@@ -422,11 +416,7 @@ def filelist():
     if 'username' not in session:
         return redirect('/')
 
-    items = []
-    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
-        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
-        items.append(item)
-    data = items[0]
+    data = getuser()
     if data is None:
         return abort(404)
     if 'alerts' in session:
@@ -442,11 +432,7 @@ def loginhistory():
     if 'username' not in session:
         return redirect('/')
 
-    items = []
-    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
-        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
-        items.append(item)
-    data = items[0]
+    data = getuser()
     if data is None:
         return abort(404)
     if 'alerts' in session:
@@ -463,11 +449,7 @@ def activeloginsession():
     if 'username' not in session:
         return redirect('/')
 
-    items = []
-    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
-        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
-        items.append(item)
-    data = items[0]
+    data = getuser()
     if data is None:
         return abort(404)
     if 'alerts' in session:
@@ -544,12 +526,7 @@ def settings():
     if 'username' not in session:
         return redirect('/')
 
-    items = []
-    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
-        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
-        items.append(item)
-    data = items[0]
-
+    data = getuser()
     if data is None:
         return abort(404)
     if 'alerts' in session:
@@ -583,11 +560,7 @@ def newrecipe():
             session['alerts'] = 'you are not allowed to create new recipe.' + str(e)
             return redirect('/')
     else:
-        items = []
-        for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
-            item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
-            items.append(item)
-        data = items[0]
+        data = getuser()
         if data is None:
             return abort(404)
         if 'alerts' in session:
@@ -619,11 +592,7 @@ def updaterecipe(recipe_id):
             session['alerts'] = 'you are not allowed to update item_list_in_json.' + str(e)
             return str(e)
     else:
-        items = []
-        for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
-            item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
-            items.append(item)
-        data = items[0]
+        data = getuser()
         if data is None:
             return abort(404)
         if 'alerts' in session:
@@ -661,11 +630,7 @@ def newproduct():
 
         return redirect('/products')
     else:
-        items = []
-        for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
-            item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
-            items.append(item)
-        data = items[0]
+        data = getuser()
         if data is None:
             return abort(404)
         if 'alerts' in session:
@@ -709,11 +674,7 @@ def addproduct():
             session['alerts'] = 'you are not allowed to create new product status.' + str(e)
             return redirect('/showproductstatus')
     else:
-        items = []
-        for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
-            item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
-            items.append(item)
-        data = items[0]
+        data = getuser()
         if data is None:
             return abort(404)
         if 'alerts' in session:
@@ -734,11 +695,7 @@ def newitem():
     if 'username' not in session:
         return redirect('/')
 
-    items = []
-    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
-        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
-        items.append(item)
-    data = items[0]
+    data = getuser()
     if data is None:
         return abort(404)
     if 'alerts' in session:
@@ -775,12 +732,7 @@ def showproductstatus():
     if 'username' not in session:
         return redirect('/')
 
-    items = []
-    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
-        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
-        items.append(item)
-
-    data = items[0]
+    data = getuser()
     if data is None:
         return abort(404)
     if 'alerts' in session:
@@ -797,12 +749,8 @@ def showboard():
     if 'username' not in session:
         return redirect('/')
 
-    items = []
-    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
-        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
-        items.append(item)
-    data = items[0]
     if request.method == "GET":
+        data = getuser()
         if data is None:
             return abort(404)
         if 'alerts' in session:
@@ -955,20 +903,15 @@ def updateproductstatus(productstatus_id):
     if 'username' not in session:
         return redirect('/')
 
-    items = []
-    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
-        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
-        items.append(item)
-    data = items[0]
-    if data is None:
-        return abort(404)
-    if 'alerts' in session:
-        alert = session['alerts']
-        session.pop('alerts')
-    else:
-        alert = None
-
     if request.method == "GET":
+        data = getuser()
+        if data is None:
+            return abort(404)
+        if 'alerts' in session:
+            alert = session['alerts']
+            session.pop('alerts')
+        else:
+            alert = None
         productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
         return render_template('updateproductstatus.html', data=data, alert=alert, productstatus=productstatus)
     else:
@@ -990,14 +933,9 @@ def updateproductstatus(productstatus_id):
 def updateitem(item_id):
     if 'username' not in session:
         return redirect('/')
-
-    items = []
-    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
-        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
-        items.append(item)
-    data = items[0]
-
+    
     if request.method == "GET":
+        data = getuser()
         if data is None:
             return abort(404)
         if 'alerts' in session:
@@ -1037,13 +975,8 @@ def updateproduct(product_id):
     if 'username' not in session:
         return redirect('/')
     
-    items = []
-    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
-        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
-        items.append(item)
-    data = items[0]
-
     if request.method == "GET":
+        data = getuser()
         if data is None:
             return abort(404)
         if 'alerts' in session:
@@ -1079,12 +1012,8 @@ def showproductstock():
     if 'username' not in session:
         return redirect('/')
 
-    items = []
-    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
-        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
-        items.append(item)
-    data = items[0]
     if request.method == "GET":
+        data = getuser()
         if data is None:
             return abort(404)
         if 'alerts' in session:
@@ -1101,7 +1030,6 @@ def dashboard():
     if 'username' not in session:
         return redirect('/')
 
-    data = None
     users = alchemy_session.query(User).all()
     for user in users:
         username = user.username
@@ -1110,7 +1038,7 @@ def dashboard():
         
         try:            
             profile = alchemy_session.query(Profile).filter_by(username=username).one()
-            data = alchemy_session.query(User).filter_by(username=username).one()
+            user = alchemy_session.query(User).filter_by(username=username).one()
             break
         except Exception as e:
             logging.error(str(e))
@@ -1120,6 +1048,7 @@ def dashboard():
             session.pop('type')
             return "Your details are not filled. Please sign up again <a href=\"/signup\">here</a>. Account has been suspended."
     
+    data = getuser()
     if data is None:
         return abort(404)
 

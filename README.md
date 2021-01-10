@@ -19,21 +19,6 @@ Flask.
 3. User profile:
 	* Details of the User
 	* Can be edited
-
-4. Online Fee Payment:
-	* Previous payments
-	* Show dues
-	* Pay fee
-	* Download fee details in CSV format
-
-5. Announcements:
-	* System-wide announcements by Administrator
-	* List announcements in the selected time period
-
-6. Requests:
-	* User requests for supplies
-	* Supplies visible to the Administrator
-	* Download requests in CSV format
 	
 ## Python Packages Required
 * pip install flask-mysql
