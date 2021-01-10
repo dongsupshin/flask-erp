@@ -62,21 +62,17 @@
 <script>
 	function update(){
 		var value = document.getElementById("InputQuantity").value;
-		console.log(value);
-
+		
 		if(value){
 			$.ajax({
 				type : 'POST',
 				url : $(location).attr('href'),
-				// contentType: 'application/json;charset=UTF-8',
 				data : {"quantity" : value},
 				success : function(result){
-						// alert("result = "+ result);
-						location.reload(true);
+						window.location.href = location.origin + '/showproductstatus';
 				},
 				error : function(xtr,status,error){
-						alert(xtr +":"+status+":"+error);
-						location.reload(true);
+						window.location.href = location.origin + '/showproductstatus';
 				}
 			});
 		}
@@ -90,18 +86,12 @@
 		$.ajax({
 			type : 'POST',
 			url : $(location).attr('href'),
-			// contentType: 'application/json;charset=UTF-8',
 			data : {"IsCommit" : "True"},
 			success : function(result){
-				console.log(result);
-				// alert("result = "+ result);
-				location.reload(true);
+				window.location.href = location.origin + '/showproductstatus';
 			},
 			error : function(xtr,status,error){
-				console.log(xtr +":"+status+":"+error);
-				// alert(xtr +":"+status+":"+error);
-				location.reload(true);
-				// window.location.href = $(location).attr('href');
+				window.location.href = location.origin + '/showproductstatus';
 			}
 		});
 	}
@@ -111,15 +101,12 @@
 		$.ajax({
 			type : 'POST',
 			url : $(location).attr('href'),
-			// contentType: 'application/json;charset=UTF-8',
 			data : {"IsCancelCommit" : "True"},
 			success : function(result){
-					// alert("result = "+ result);
-					location.reload(true);
+				window.location.href = location.origin + '/showproductstatus';
 			},
 			error : function(xtr,status,error){
-					// alert(xtr +":"+status+":"+error);
-					location.reload(true);
+				window.location.href = location.origin + '/showproductstatus';
 			}
 		});
 	}

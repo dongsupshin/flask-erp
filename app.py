@@ -28,8 +28,16 @@ alchemy_session = DBSession()
 
 @app.errorhandler(404)
 def page_not_found(e):
-    logging.error(str(e))
+    print(request.path)
+    logging.error(str(e) + ' path : ' + request.path)
     alchemy_session.rollback()
+
+    ######################################
+    # [TBD]
+    if str(request.path).split('/')[1] in ('static', 'upload'):
+        return e
+    ######################################
+
     alert = None
     if 'alerts' in session:
         alert = session['alerts']
@@ -45,6 +53,12 @@ def page_not_found(e):
 def handle_exception(e):
     logging.error(str(e))
     alchemy_session.rollback()
+
+    ######################################
+    # [TBD]
+    if str(request.path).split('/')[1] in ('static', 'upload'):
+        return e
+    ######################################
 
     alert = None
     if 'alerts' in session:
@@ -797,6 +811,145 @@ def showboard():
             boards = alchemy_session.query(Board).all()
             return render_template("board.html", data=data, boards=boards)
 
+def updateproductstatusupdate(productstatus_id, quantity):
+    productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
+    productstock = alchemy_session.query(ProductStockMaster).filter_by(product_id=productstatus.product_id).one()
+    recipe = alchemy_session.query(RecipeMaster).filter_by(id=productstatus.recipe_id).one()
+
+    if productstatus.status == 'Finished':
+        session['alerts'] = 'you are not allowed to upate the product status record ' + str(productstatus.id) + ' because is has been committed.'
+        return redirect('/showproductstatus')
+    else:            
+        productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
+        productstatus.quantity = quantity
+        productstatus.status = 'OnGoing'
+        alchemy_session.add(productstatus)
+        alchemy_session.commit()
+        return redirect('/showproductstatus')
+
+def updateproductstatuscommit(productstatus_id, is_commit):
+    productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
+    productstock = alchemy_session.query(ProductStockMaster).filter_by(product_id=productstatus.product_id).one()
+    recipe = alchemy_session.query(RecipeMaster).filter_by(id=productstatus.recipe_id).one()
+
+    if is_commit == 'True':
+        if productstatus.status == 'Finished':
+            session['alerts'] = 'productstatus ' + str(productstatus.id) + ' has been already commited.'
+            return abort(404, description=session['alerts'])
+
+        if recipe.item_list_in_json is None:
+            session['alerts'] = 'recipe.item_list_in_json ' + str(recipe.id) + ' is empty.'
+            return abort(404, description=session['alerts'])
+
+        productstatus.status = 'Finished'
+        alchemy_session.add(productstatus)
+
+        # plus stock
+        item_list = []
+        print(recipe.item_list_in_json)
+        if recipe.item_list_in_json is None:
+            session['alerts'] = 'recipe_id ' + str(productstatus.recipe_id) + ' : productstatus.item_list_in_json is None.'
+            return redirect('/showproductstatus')
+        if len(recipe.item_list_in_json) == 0:
+            session['alerts'] = 'recipe_id ' + str(productstatus.recipe_id) + ' : productstatus.item_list_in_json is empty.'
+            return redirect('/showproductstatus')
+        else:
+            item_list = json.loads(recipe.item_list_in_json)
+            # check items availability
+            for row in item_list:
+                item = alchemy_session.query(ItemMaster).filter_by(name=row['item']).one()
+                item_stock_to_be_required = productstatus.quantity * int(row['quantity'])
+                item_stock_in_db = alchemy_session.query(ItemStockMaster).filter_by(item_id=item.id).one()
+                print(item_stock_to_be_required, item_stock_in_db.stock)
+                if item_stock_to_be_required > item_stock_in_db.stock:
+                    print(item_stock_to_be_required, item_stock_in_db.stock)
+                    session['alerts'] = 'item stock is not enough. ' + 'item_stock_to_be_required : ' + str(item_stock_to_be_required) + ', item_stock_in_db.stock : ' + str(item_stock_in_db.stock)
+                    return abort(404, description=session['alerts'])
+                    # return redirect('/showproductstatus')
+
+        alchemy_session.commit()
+        
+        stock = int(productstock.stock) + int(productstatus.quantity) 
+        print('stock : ', stock)
+        try:
+            productstock = alchemy_session.query(ProductStockMaster).filter_by(id=productstock.id).one()
+            productstock.stock = stock
+            alchemy_session.add(productstock)
+            print('test1')
+            alchemy_session.commit()
+            print('test2')
+        except Exception as e:
+            print('test3')
+            alchemy_session.rollback()
+            logging.error(str(e))
+            session['alerts'] = 'you are not allowed to update the record.' + str(e)
+            return redirect('/showproductstatus')
+
+        print('item_list : ', item_list)
+        for row in item_list:
+            try:
+                item = alchemy_session.query(ItemMaster).filter_by(name=row['item']).one()
+                item_stock_to_be_required = productstatus.quantity * int(row['quantity'])
+                item_stock_in_db = alchemy_session.query(ItemStockMaster).filter_by(item_id=item.id).one()
+                stock = int(item_stock_in_db.stock) - int(item_stock_to_be_required)
+                item_stock_in_db.stock = stock
+                alchemy_session.add(item_stock_in_db)
+                alchemy_session.commit()
+            except Exception as e:
+                alchemy_session.rollback()
+                logging.error(str(e))
+                session['alerts'] = 'you are not allowed to update the record.' + str(e)
+                return redirect('/showproductstatus')
+
+        return redirect('/showproductstatus')
+    else:
+        session['alerts'] = 'invalid request. is_commit : ' + str(is_commit)
+        return abort(404, description=session['alerts'])
+
+def updateproductstatuscancelcommit(productstatus_id, is_cancel_commit):
+    productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
+    productstock = alchemy_session.query(ProductStockMaster).filter_by(product_id=productstatus.product_id).one()
+    recipe = alchemy_session.query(RecipeMaster).filter_by(id=productstatus.recipe_id).one()
+
+    if is_cancel_commit == 'True':
+        if productstatus.status in ('Idle', 'OnGoing'):
+            productstatus.status = 'Idle'
+            productstatus.quantity = 0
+            alchemy_session.add(productstatus)
+            alchemy_session.commit()
+            return redirect('/showproductstatus')
+
+        if recipe.item_list_in_json is None:
+            session['alerts'] = 'recipe.item_list_in_json ' + str(recipe.id) + ' is empty.'
+            return redirect('/showproductstatus')
+        
+        productstatus.status = 'Idle'
+        
+        # minus stock
+        productstock = alchemy_session.query(ProductStockMaster).filter_by(product_id=productstatus.product_id).one()
+        stock = int(productstock.stock) - int(productstatus.quantity)
+        print('product stock : ', stock)
+        productstock.stock = stock
+        alchemy_session.add(productstatus)
+        alchemy_session.add(productstock)
+
+        item_list = json.loads(recipe.item_list_in_json)
+
+        for row in item_list:
+            item = alchemy_session.query(ItemMaster).filter_by(name=row['item']).one()
+            item_stock_to_be_required = productstatus.quantity * int(row['quantity'])
+            item_stock_in_db = alchemy_session.query(ItemStockMaster).filter_by(item_id=item.id).one()
+            stock = int(item_stock_in_db.stock) + int(item_stock_to_be_required)
+            item_stock_in_db.stock = stock
+            print('item stock : ', stock)
+            alchemy_session.add(item_stock_in_db)
+
+        alchemy_session.commit()
+        return redirect('/showproductstatus')
+    else:
+        session['alerts'] = 'invalid request. is_cancel_commit : ' + str(is_cancel_commit)
+        return abort(404, description=session['alerts'])
+
 @app.route('/updateproductstatus/<int:productstatus_id>/', methods=['GET', 'POST'])
 def updateproductstatus(productstatus_id):
     if 'username' not in session:
@@ -822,135 +975,15 @@ def updateproductstatus(productstatus_id):
         quantity = request.form.get('quantity') # update button clicked
         is_commit = request.form.get('IsCommit')
         is_cancel_commit = request.form.get('IsCancelCommit')
-        
-        productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
-        productstock = alchemy_session.query(ProductStockMaster).filter_by(product_id=productstatus.product_id).one()
-        recipe = alchemy_session.query(RecipeMaster).filter_by(id=productstatus.recipe_id).one()
 
-        if is_commit == 'True':
-            if productstatus.status == 'Finished':
-                session['alerts'] = 'productstatus ' + str(productstatus.id) + ' has been already commited.'
-                return abort(404, description=session['alerts'])
-
-            if recipe.item_list_in_json is None:
-                session['alerts'] = 'recipe.item_list_in_json ' + str(recipe.id) + ' is empty.'
-                return abort(404, description=session['alerts'])
-
-            productstatus.status = 'Finished'
-            alchemy_session.add(productstatus)
-            alchemy_session.commit()
-
-            # plus stock
-            item_list = []
-            print(recipe.item_list_in_json)
-            if recipe.item_list_in_json is None:
-                session['alerts'] = 'recipe_id ' + str(productstatus.recipe_id) + ' : productstatus.item_list_in_json is None.'
-                return redirect('/showproductstatus')
-            if len(recipe.item_list_in_json) == 0:
-                session['alerts'] = 'recipe_id ' + str(productstatus.recipe_id) + ' : productstatus.item_list_in_json is empty.'
-                return redirect('/showproductstatus')
-            else:
-                item_list = json.loads(recipe.item_list_in_json)
-                # check items availability
-                for row in item_list:
-                    item = alchemy_session.query(ItemMaster).filter_by(name=row['item']).one()
-                    item_stock_to_be_required = productstatus.quantity * int(row['quantity'])
-                    item_stock_in_db = alchemy_session.query(ItemStockMaster).filter_by(item_id=item.id).one()
-                    print(item_stock_to_be_required, item_stock_in_db.stock)
-                    if item_stock_to_be_required > item_stock_in_db.stock:
-                        print(item_stock_to_be_required, item_stock_in_db.stock)
-                        session['alerts'] = 'item stock is not enough. ' + 'item_stock_to_be_required : ' + str(item_stock_to_be_required) + ', item_stock_in_db.stock : ' + str(item_stock_in_db.stock)
-                        return redirect('/showproductstatus')
-            
-            stock = int(productstock.stock) + int(productstatus.quantity) 
-            print('stock : ', stock)
-            try:
-                productstock = alchemy_session.query(ProductStockMaster).filter_by(id=productstock.id).one()
-                productstock.stock = stock
-                alchemy_session.add(productstock)
-                print('test1')
-                alchemy_session.commit()
-                print('test2')
-            except Exception as e:
-                print('test3')
-                alchemy_session.rollback()
-                logging.error(str(e))
-                session['alerts'] = 'you are not allowed to update the record.' + str(e)
-                return redirect('/showproductstatus')
-
-            for row in item_list:
-                try:
-                    item = alchemy_session.query(ItemMaster).filter_by(name=row['item']).one()
-                    item_stock_to_be_required = productstatus.quantity * int(row['quantity'])
-                    item_stock_in_db = alchemy_session.query(ItemStockMaster).filter_by(item_id=item.id).one()
-                    stock = int(item_stock_in_db.stock) - int(item_stock_to_be_required)
-                    item_stock_in_db.stock = stock
-                    alchemy_session.add(item_stock_in_db)
-                    alchemy_session.commit()
-                except Exception as e:
-                    alchemy_session.rollback()
-                    logging.error(str(e))
-                    session['alerts'] = 'you are not allowed to update the record.' + str(e)
-                    return redirect('/showproductstatus')
-
-            return redirect('/showproductstatus')
-
-        if is_cancel_commit == 'True':
-            if productstatus.status in ('OnGoing'):
-                productstatus.status = 'Idle'
-                productstatus.quantity = 0
-                alchemy_session.add(productstatus)
-                alchemy_session.commit()
-                return redirect('/showproductstatus')
-
-            if productstatus.status in ('Idle'):
-                session['alerts'] = 'productstatus ' + str(productstatus.id) + ' has been already canceled.'
-                return abort(404, description=session['alerts'])
-
-            if recipe.item_list_in_json is None:
-                session['alerts'] = 'recipe.item_list_in_json ' + str(recipe.id) + ' is empty.'
-                return abort(404, description=session['alerts'])
-            
-            productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
-            productstatus.status = 'Idle'
-            productstatus.quantity = 0
-            alchemy_session.add(productstatus)
-            alchemy_session.commit()
-            
-            # minus stock
-            productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
-            productstock = alchemy_session.query(ProductStockMaster).filter_by(product_id=productstatus.product_id).one()
-            stock = int(productstock.stock) - int(productstatus.quantity)
-            
-            productstock = alchemy_session.query(ProductStockMaster).filter_by(id=productstock.id).one()
-            productstock.stock = stock
-            alchemy_session.add(productstock)
-            alchemy_session.commit()
-
-            item_list = json.loads(recipe.item_list_in_json)
-
-            for row in item_list:
-                item = alchemy_session.query(ItemMaster).filter_by(name=row['item']).one()
-                item_stock_to_be_required = productstatus.quantity * int(row['quantity'])
-                item_stock_in_db = alchemy_session.query(ItemStockMaster).filter_by(item_id=item.id).one()
-                stock = int(item_stock_in_db.stock) + int(item_stock_to_be_required)
-                
-                item_stock_in_db.stock = stock
-                alchemy_session.add(item_stock_in_db)
-                alchemy_session.commit()
-
-            return redirect('/showproductstatus')
-
-        productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
-        if productstatus.status == 'Finished':
-            session['alerts'] = 'you are not allowed to upate the product status record ' + str(productstatus.id) + ' because is has been committed.'
-            return redirect('/showproductstatus')
-        else:            
-            productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
-            productstatus.quantity = quantity
-            productstatus.status = 'OnGoing'
-            alchemy_session.add(productstatus)
-            alchemy_session.commit()
+        if quantity:
+            return updateproductstatusupdate(productstatus_id, quantity)
+        elif is_commit:
+            return updateproductstatuscommit(productstatus_id, is_commit)
+        elif is_cancel_commit:
+            return updateproductstatuscancelcommit(productstatus_id, is_cancel_commit)
+        else:
+            session['alerts'] = 'input params are empty.'
             return redirect('/showproductstatus')
 
 @app.route('/updateitem/<int:item_id>/', methods=['GET', 'POST'])
