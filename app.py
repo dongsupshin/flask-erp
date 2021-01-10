@@ -1009,19 +1009,27 @@ def updateitem(item_id):
         itemstock = alchemy_session.query(ItemStockMaster).filter_by(item_id=item_id).one()
         return render_template('updateitem.html', data=data, alert=alert, itemstock=itemstock)
     else:
+        previous_item_name = None
         quantity = request.form.get('quantity')
         itemstock = alchemy_session.query(ItemStockMaster).filter_by(item_id=item_id).one()
+        previous_item_name = itemstock.item_name
         itemstock.stock = quantity
         itemstock.item_name = request.form.get('itemname')
         alchemy_session.add(itemstock)
-        alchemy_session.commit()
 
         itemname = request.form.get('itemname')
         item = alchemy_session.query(ItemMaster).filter_by(id=item_id).one()
         item.name = itemname
         alchemy_session.add(item)
-        alchemy_session.commit()
 
+        # recipe item update
+        recipes = alchemy_session.query(RecipeMaster).all()
+        for row in recipes:
+            if previous_item_name:
+                row.item_list_in_json = row.item_list_in_json.replace(previous_item_name, itemname)
+                alchemy_session.add(row)
+
+        alchemy_session.commit()
         return redirect('/items')
 
 @app.route('/updateproduct/<product_id>/', methods=['GET', 'POST'])
@@ -1057,6 +1065,13 @@ def updateproduct(product_id):
         productstock.product_name = productname
         alchemy_session.add(productstock)
         alchemy_session.commit()
+
+        productstatuses = alchemy_session.query(ProductStatusMaster).filter_by(product_id=product_id).all()
+        for row in productstatuses:
+            row.product_name = productname
+            alchemy_session.add(row)        
+        alchemy_session.commit()
+
         return redirect('/products')
 
 @app.route('/showproductstock', methods=['GET'])
