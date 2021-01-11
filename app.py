@@ -28,7 +28,6 @@ alchemy_session = DBSession()
 
 @app.errorhandler(404)
 def page_not_found(e):
-    print(request.path)
     logging.error(str(e) + ' path : ' + request.path)
     alchemy_session.rollback()
 
@@ -67,16 +66,6 @@ def handle_exception(e):
         alert += ' ' + str(e)
     else:
         alert = str(e)
-
-    # pass through HTTP errors
-    if isinstance(e, HTTPException):
-        return render_template("500.html", alert=alert), 500
-
-    # now you're handling non-HTTP exceptions only
-    if alert:
-        alert += ' ' + 'non-HTTP exceptions'
-    else:
-        alert = 'non-HTTP exceptions'
 
     return render_template("500.html", alert=alert), 500
 
@@ -234,12 +223,9 @@ def index_uploader():
     return render_template('index_uploader.html')
 
 def getuser():
-    items = []
-    for A, B in alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).all():
-        item = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
-        items.append(item)
+    A, B = alchemy_session.query(User, Profile).filter(User.username == Profile.username, User.username == session['username']).one()
+    user = {'username' : A.username, 'name' : B.name, 'dob' : B.dob, 'sex' : B.sex, 'email' : B.email, 'number' : B.number, 'address' : B.address}
     
-    user = items[0]
     return user
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -761,8 +747,6 @@ def showboard():
 
 def updateproductstatusupdate(productstatus_id, quantity):
     productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
-    productstock = alchemy_session.query(ProductStockMaster).filter_by(product_id=productstatus.product_id).one()
-    recipe = alchemy_session.query(RecipeMaster).filter_by(id=productstatus.recipe_id).one()
 
     if productstatus.status == 'Finished':
         session['alerts'] = 'you are not allowed to upate the product status record ' + str(productstatus.id) + ' because is has been committed.'
@@ -794,7 +778,6 @@ def updateproductstatuscommit(productstatus_id, is_commit):
 
         # plus stock
         item_list = []
-        print(recipe.item_list_in_json)
         if recipe.item_list_in_json is None:
             session['alerts'] = 'recipe_id ' + str(productstatus.recipe_id) + ' : productstatus.item_list_in_json is None.'
             return redirect('/showproductstatus')
@@ -808,32 +791,24 @@ def updateproductstatuscommit(productstatus_id, is_commit):
                 item = alchemy_session.query(ItemMaster).filter_by(name=row['item']).one()
                 item_stock_to_be_required = productstatus.quantity * int(row['quantity'])
                 item_stock_in_db = alchemy_session.query(ItemStockMaster).filter_by(item_id=item.id).one()
-                print(item_stock_to_be_required, item_stock_in_db.stock)
                 if item_stock_to_be_required > item_stock_in_db.stock:
-                    print(item_stock_to_be_required, item_stock_in_db.stock)
                     session['alerts'] = 'item stock is not enough. ' + 'item_stock_to_be_required : ' + str(item_stock_to_be_required) + ', item_stock_in_db.stock : ' + str(item_stock_in_db.stock)
                     return abort(404, description=session['alerts'])
-                    # return redirect('/showproductstatus')
 
         alchemy_session.commit()
         
         stock = int(productstock.stock) + int(productstatus.quantity) 
-        print('stock : ', stock)
         try:
             productstock = alchemy_session.query(ProductStockMaster).filter_by(id=productstock.id).one()
             productstock.stock = stock
             alchemy_session.add(productstock)
-            print('test1')
             alchemy_session.commit()
-            print('test2')
         except Exception as e:
-            print('test3')
             alchemy_session.rollback()
             logging.error(str(e))
             session['alerts'] = 'you are not allowed to update the record.' + str(e)
             return redirect('/showproductstatus')
 
-        print('item_list : ', item_list)
         for row in item_list:
             try:
                 item = alchemy_session.query(ItemMaster).filter_by(name=row['item']).one()
@@ -876,20 +851,17 @@ def updateproductstatuscancelcommit(productstatus_id, is_cancel_commit):
         # minus stock
         productstock = alchemy_session.query(ProductStockMaster).filter_by(product_id=productstatus.product_id).one()
         stock = int(productstock.stock) - int(productstatus.quantity)
-        print('product stock : ', stock)
         productstock.stock = stock
         alchemy_session.add(productstatus)
         alchemy_session.add(productstock)
 
         item_list = json.loads(recipe.item_list_in_json)
-
         for row in item_list:
             item = alchemy_session.query(ItemMaster).filter_by(name=row['item']).one()
             item_stock_to_be_required = productstatus.quantity * int(row['quantity'])
             item_stock_in_db = alchemy_session.query(ItemStockMaster).filter_by(item_id=item.id).one()
             stock = int(item_stock_in_db.stock) + int(item_stock_to_be_required)
             item_stock_in_db.stock = stock
-            print('item stock : ', stock)
             alchemy_session.add(item_stock_in_db)
 
         alchemy_session.commit()
@@ -1036,14 +1008,14 @@ def dashboard():
         if session['username'] not in username:
             continue
         
-        try:            
-            profile = alchemy_session.query(Profile).filter_by(username=username).one()
-            user = alchemy_session.query(User).filter_by(username=username).one()
+        count = alchemy_session.query(Profile).filter_by(username=username).count()
+        if count > 0:
             break
-        except Exception as e:
-            logging.error(str(e))
-            alchemy_session.delete(user)
-            alchemy_session.commit()
+        count = alchemy_session.query(User).filter_by(username=username).count()
+        if count > 0:
+            break
+
+        if count == 0:
             session.pop('username')
             session.pop('type')
             return "Your details are not filled. Please sign up again <a href=\"/signup\">here</a>. Account has been suspended."
@@ -1075,10 +1047,10 @@ def changesettings():
                 msg = msg + ' username is same.'
                 pass
             else:
-                try:
-                    data = alchemy_session.query(User).filter_by(username=newusername).one()
+                count = alchemy_session.query(User).filter_by(username=newusername).count()
+                if count > 0:
                     msg = msg + " username already exists."
-                except Exception as e:
+                else:
                     # this is not error, update user and profile
                     try:
                         ##############################################################################
