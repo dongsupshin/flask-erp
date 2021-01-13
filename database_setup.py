@@ -27,6 +27,8 @@ class User(Base):
     password = Column(String(256), nullable=False)
     type = Column(Enum('user', 'admin'), nullable=False)
     child_profile = relationship('Profile', cascade="all,delete", backref="parent")
+    child_login = relationship('LoginHistory', cascade="all,delete", backref="parent")
+    child_session = relationship('ActiveLoginSession', cascade="all,delete", backref="parent")
     
     time_created = Column(DateTime(timezone=False), server_default=func.now())
     time_updated = Column(DateTime(timezone=False), onupdate=func.now())

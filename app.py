@@ -351,6 +351,7 @@ def deleteuser(username):
         alchemy_session.delete(user)
         alchemy_session.commit()
         session.pop('username')
+        session.pop('token')
         return redirect('/')
 
 @app.route('/products')
@@ -498,7 +499,7 @@ def loginhistory():
 def activeloginsession():
     if 'username' not in session:
         return redirect('/')
-
+    
     data = getuser()
     if data is None:
         return abort(404)
