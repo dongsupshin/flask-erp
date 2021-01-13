@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, Column, ForeignKey, Integer, String, Date, Sequence, DateTime, \
     Enum, Float, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy.sql import select, func
 from common import uuid_url64
 
@@ -22,10 +22,12 @@ class Account(Base):
 class User(Base):
     __tablename__ = 'user'
 
+    uuid = Column(String(256), default=str(uuid_url64()), unique=True)
     username = Column(String(256), primary_key=True)
     password = Column(String(256), nullable=False)
     type = Column(Enum('user', 'admin'), nullable=False)
-
+    child_profile = relationship('Profile', cascade="all,delete", backref="parent")
+    
     time_created = Column(DateTime(timezone=False), server_default=func.now())
     time_updated = Column(DateTime(timezone=False), onupdate=func.now())
 
@@ -63,6 +65,9 @@ class ProductMaster(Base):
     
     id = Column(String(256), primary_key=True)
     name = Column(String(256), nullable=False, unique=True)
+    child_product_detail = relationship('ProductDetail', cascade="all,delete", backref="parent")
+    child_product_stock = relationship('ProductStockMaster', cascade="all,delete", backref="parent")
+    child_product_recipe = relationship('RecipeMaster', cascade="all,delete", backref="parent")
 
     time_created = Column(DateTime(timezone=False), server_default=func.now())
     time_updated = Column(DateTime(timezone=False), onupdate=func.now())
@@ -90,6 +95,7 @@ class ProductStockMaster(Base):
     time_created = Column(DateTime(timezone=False), server_default=func.now())
     time_updated = Column(DateTime(timezone=False), onupdate=func.now())
 
+
 class ItemMaster(Base):
     __tablename__ = 'item_master'
     
@@ -97,7 +103,8 @@ class ItemMaster(Base):
     name = Column(String(256), nullable=False, unique=True)
     user = relationship(User)
     person_in_charge = Column(String(256), ForeignKey('user.username'))
-    
+    child = relationship('ItemStockMaster', cascade="all,delete", backref="parent")
+
     time_created = Column(DateTime(timezone=False), server_default=func.now())
     time_updated = Column(DateTime(timezone=False), onupdate=func.now())
 
@@ -112,7 +119,6 @@ class ItemStockMaster(Base):
 
     time_created = Column(DateTime(timezone=False), server_default=func.now())
     time_updated = Column(DateTime(timezone=False), onupdate=func.now())
-
 
 class RecipeMaster(Base):
     __tablename__ = 'recipe_master'

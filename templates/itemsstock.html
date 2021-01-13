@@ -1,0 +1,31 @@
+{% extends "main.html" %}
+{% block content %}
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+	<br />
+	<h1 class="page-header">List of Items Stock</h1>
+	<hr style="border-color: black;">
+	<div class="table-responsive">
+		<table class="table table-striped">
+			<thead>
+				<tr>
+					<th>id</th>
+					<th>item_id</th>
+					<th>item_name</th>
+					<th>stock</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for i in stocks%}
+				<tr>
+					<td>{{i.id}}</td>
+					<td>{{i.item_id}}</td>
+					<td>{{i.item_name}}</td>
+					<td>{{i.stock}}</td>
+				</tr>
+				{% endfor %}
+
+			</tbody>
+		</table>
+	</div>
+</div>
+{% endblock %}

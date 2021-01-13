@@ -2,7 +2,13 @@
 {% block content %}
 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
 	<h1 class="page-header">Dashboard</h1>
-
+	<hr style="border-color: black;">
+	{% if alert %}
+	<div class="alert alert-info alert-dismissible" role="alert">
+		<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+		<strong>Heads, up!</strong> {{ alert }}
+	</div>
+	{% endif %}
 	<div class="row placeholders">
 		<div class="col-xs-6 col-sm-3 placeholder">
 			<img src="data:image/gif;base64,R0lGODlhAQABAIAAAHd3dwAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==" width="200" height="200" class="img-responsive" alt="Generic placeholder thumbnail">

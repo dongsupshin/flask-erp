@@ -261,7 +261,7 @@ def signup():
 
         flag = 0
         try:
-            newuser = User(username=username, password=password, type='user')
+            newuser = User(uuid=str(uuid_url64()), username=username, password=password, type='user')
             alchemy_session.add(newuser)
             newuserprofile = Profile(user=newuser, name=name, dob=dob, sex=sex, email=email, address=address, number=number)
             alchemy_session.add(newuserprofile)
@@ -337,6 +337,22 @@ def updateuser(username):
     user = alchemy_session.query(User).filter_by(username=username).one()
     return render_template("updateuser.html", data=data, user=user)
 
+@app.route('/admin/users/delete/<username>/', methods=['GET'])
+def deleteuser(username):
+    if 'username' not in session:
+        return redirect('/')
+    
+    if request.method == "GET":
+        data = getuser()
+        if data is None:
+            return abort(404)
+        
+        user = alchemy_session.query(User).filter_by(username=username).one()
+        alchemy_session.delete(user)
+        alchemy_session.commit()
+        session.pop('username')
+        return redirect('/')
+
 @app.route('/products')
 def products():
     if 'username' not in session:
@@ -359,6 +375,21 @@ def products():
 
     return render_template("products.html", data=data, alert=alert, products=products)
 
+@app.route('/deleteproduct/<product_id>/', methods=['GET'])
+def deleteproduct(product_id):
+    if 'username' not in session:
+        return redirect('/')
+    
+    if request.method == "GET":
+        data = getuser()
+        if data is None:
+            return abort(404)
+        
+        product = alchemy_session.query(ProductMaster).filter_by(id=product_id).one()
+        alchemy_session.delete(product)
+        alchemy_session.commit()
+        return redirect('/products')
+
 @app.route('/recipes')
 def recipes():
     if 'username' not in session:
@@ -375,6 +406,22 @@ def recipes():
 
     recipes = alchemy_session.query(RecipeMaster).all()
     return render_template("recipes.html", data=data, alert=alert, recipes=recipes)
+
+@app.route('/deleterecipe/<int:recipe_id>/', methods=['GET'])
+def deleterecipe(recipe_id):
+    if 'username' not in session:
+        return redirect('/')
+    
+    if request.method == "GET":
+        
+        data = getuser()
+        if data is None:
+            return abort(404)
+        
+        recipe = alchemy_session.query(RecipeMaster).filter_by(id=recipe_id).one()
+        alchemy_session.delete(recipe)
+        alchemy_session.commit()
+        return redirect('/recipes')
 
 @app.route('/items')
 def items():
@@ -396,6 +443,23 @@ def items():
         items.append(item)
     
     return render_template("items.html", data=data, items=items, alert=alert)
+
+@app.route('/itemsstock')
+def itemsstock():
+    if 'username' not in session:
+        return redirect('/')
+
+    data = getuser()
+    if data is None:
+        return abort(404)
+    if 'alerts' in session:
+        alert = session['alerts']
+        session.pop('alerts')
+    else:
+        alert = None
+
+    stocks = alchemy_session.query(ItemStockMaster).all()
+    return render_template("itemsstock.html", data=data, alert=alert, stocks=stocks)
 
 @app.route('/filelist')
 def filelist():
@@ -699,8 +763,7 @@ def newitem():
             user = alchemy_session.query(User).filter_by(username=in_user).one()
             newitem = ItemMaster(name=in_item,user=user)
             alchemy_session.add(newitem)
-            alchemy_session.commit()
-            itemstock = ItemStockMaster(item=newitem, stock=int(in_quantity))
+            itemstock = ItemStockMaster(item=newitem, item_name=newitem.name, stock=int(in_quantity))
             alchemy_session.add(itemstock)
             alchemy_session.commit()
             return redirect('/items')
@@ -942,6 +1005,22 @@ def updateitem(item_id):
         alchemy_session.commit()
         return redirect('/items')
 
+@app.route('/deleteitem/<int:item_id>/', methods=['GET'])
+def deleteitem(item_id):
+    if 'username' not in session:
+        return redirect('/')
+    
+    if request.method == "GET":
+        
+        data = getuser()
+        if data is None:
+            return abort(404)
+        
+        item = alchemy_session.query(ItemMaster).filter_by(id=item_id).one()
+        alchemy_session.delete(item)
+        alchemy_session.commit()
+        return redirect('/items')
+
 @app.route('/updateproduct/<product_id>/', methods=['GET', 'POST'])
 def updateproduct(product_id):
     if 'username' not in session:
@@ -1024,7 +1103,13 @@ def dashboard():
     if data is None:
         return abort(404)
 
-    return render_template("dashboard.html", data=data)
+    if 'alerts' in session:
+        alert = session['alerts']
+        session.pop('alerts')
+    else:
+        alert = None
+
+    return render_template("dashboard.html", data=data, alert=alert)
 
 @app.route('/help')
 def help():
@@ -1099,7 +1184,7 @@ def changesettings():
                         alchemy_session.rollback()
                         logging.error(str(e))
                         session['alerts'] = str(e)
-                        return redirect("/settings")
+                        return redirect("/")
         else:
             msg = msg + " username is none."
 
@@ -1118,7 +1203,7 @@ def changesettings():
                 alchemy_session.rollback()
                 logging.error(str(e))
                 session['alerts'] = str(e)
-                return redirect("/settings")
+                return redirect("/")
             
         if newAdmin != "" and newAdmin is not None:
             try:
@@ -1133,10 +1218,10 @@ def changesettings():
                 alchemy_session.rollback()
                 logging.error(str(e))
                 session['alerts'] = str(e)
-                return redirect("/settings")
+                return redirect("/")
 
         session['alerts'] = msg
-        return redirect("/settings")
+        return redirect("/")
     else:
         return redirect("/settings")
 

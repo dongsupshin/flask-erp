@@ -53,9 +53,14 @@
 			<label for="inputAdmin" class="sr-only">Enter username</label>
 			<input type="text" name="newAdmin" id="inputAdmin" class="form-control" placeholder="Enter username">
 			{% endif %}
+			<h3 class="form-signin-heading"></h3>
 			<button class="btn btn-primary btn-block" type="submit">Save Changes</button>
 		</form>
 	</div>
-
+	<div class="form-signin">
+		<button class="btn btn-primary btn-block" onclick="document.location = '{{ url_for('deleteuser', username=data.username)}}';">
+			Delete
+		</button>
+	</div>
 </div>
 {% endblock %}

@@ -38,7 +38,12 @@
 		<input type="text" name="productname" id="inputProductName" class="form-control" placeholder="Product Name" value="{{product.name}}">
 		<h3 class="form-signin-heading"></h3>
 		<button class="btn btn-primary btn-block" type="submit">Update</button>
-	</form>		
+	</form>
+	<div class="form-signin">
+		<button class="btn btn-primary btn-block" onclick="document.location = '{{ url_for('deleteproduct', product_id=product.id)}}';">
+				Delete
+		</button>
+	</div>
 
 	<button class="btn btn-primary" type="button" onclick="document.location = '{{ url_for('products')}}';">
 			Previous

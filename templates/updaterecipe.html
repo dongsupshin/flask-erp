@@ -54,6 +54,9 @@
 	<button class="btn btn-primary" type="button" onclick="updateItems({{recipe.id}})">
 		Update
 	</button>
+	<button class="btn btn-primary" onclick="document.location = '{{ url_for('deleterecipe', recipe_id=recipe.id)}}';">
+		Delete
+	</button>
 	
 	<button class="btn btn-primary" type="button" onclick="document.location = '{{ url_for('recipes')}}';">
 		Previous

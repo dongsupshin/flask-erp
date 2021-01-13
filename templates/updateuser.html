@@ -46,6 +46,12 @@
 		</form>
 	</div>
 
+	<div class="form-signin">
+		<button class="btn btn-primary btn-block" onclick="document.location = '{{ url_for('deleteuser', username=user.username)}}';">
+			Delete
+		</button>
+	</div>
+
 	<button class="btn btn-primary" type="button" onclick="document.location = '{{ url_for('users')}}';">
 			Previous
 	</button>

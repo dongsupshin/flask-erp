@@ -23,7 +23,7 @@ session = DBSession()
 # INSERT INTO `erp`.`profile` (`username`,`name`,`dob`,`sex`,`email`,`address`,`number`) VALUES ('Admin','Administrator God', '2017-04-15', 'Male', 'gurek15033@iiitd.ac.in','IIIT-Delhi, Okhla Estate III', '9910004979')
 
 # Create dummy admin
-admin = User(username="Admin", password="Admin", type='admin')
+admin = User(uuid=str(uuid_url64()), username="Admin", password="Admin", type='admin')
 session.add(admin)
 session.commit()
 
@@ -32,7 +32,7 @@ session.add(adminprofile)
 session.commit()
 
 # Create dummy user
-User1 = User(username="Robo Barista", password="1234", type='user')
+User1 = User(uuid=str(uuid_url64()), username="Robo Barista", password="1234", type='user')
 session.add(User1)
 session.commit()
 

@@ -31,7 +31,7 @@
 			<label for="name" class="sr-only">Name</label>
 			<input type="text" name="name" id="name" class="form-control" placeholder="Name" required>
 			<label for="sex" class="sr-only">Sex(Male/Female)</label>
-			<select name="sex" id="sex" class="form-control">
+			<select name="sex"	 id="sex" class="form-control">
 			{% for sex in sex_list%}
 				<option value={{sex}}>{{sex}}</option>
 			{% endfor %}
@@ -46,7 +46,7 @@
 			<h5 class="form-signin-heading" id="center">Date of Birthday</h3>
 			<label for="dob" class="sr-only">Date of Birthday</label>
 			<input type="date" id="dob" class="form-control" name="dob" placeholder="Date of Birthday" required validate>
-
+			<h3 class="form-signin-heading"></h3>
 			<button class="btn btn-primary btn-block" type="submit">Sign up</button>
 		</form>
 
