@@ -4,7 +4,7 @@
 	<meta charset="utf-8">
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<meta name="author" content="@gureks">
+		<meta name="author" content="@sds">
 	<title>Dashboard | Flask-ERP</title>
 	<link rel="stylesheet" href="{{ url_for('static',filename='css/bootstrap.min.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/dashboard.css') }}">
@@ -12,8 +12,8 @@
 	<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 </head>
 <body>
-
 	<nav class="navbar navbar-inverse navbar-fixed-top">
+	<!-- <nav class="navbar navbar-inverse navbar-static-top"> -->
 		<div class="container-fluid">
 			<div class="navbar-header">
 				<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
@@ -144,7 +144,10 @@
 	<script>
 		$(document).ready(function(){
 			var storage_href = localStorage.getItem("is_active_button");
-			
+			$("body").css({
+				'padding-top': $(".navbar").outerHeight() + 'px'
+			});
+
 			$('.nav.nav-sidebar li').each(function(i){
 				var classname = $(this).attr('class');
 				if(classname == 'active'){
