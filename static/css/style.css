@@ -39,6 +39,16 @@ body {
   border-top-right-radius: 0;
 }
 
+.footer {
+  /* position: fixed; */
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  color: grey;
+  background-color: black;
+  text-align: center;
+}
+
 table { width: 50% }
 tbody tr:hover.selected td,
 tbody tr:hover td {
