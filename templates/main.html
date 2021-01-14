@@ -141,14 +141,32 @@
 	</script>
 
 	<script>
-		$(document).ready(function(){
-			var storage_href = localStorage.getItem("is_active_button");
+		$(window).on('resize', function(){
+			var win = $(this); //this = window
+			if (win.height() >= 820) { /* ... */ }
+			if (win.width() >= 1280) { /* ... */ }
+
+			console.log($(".navbar").outerHeight());
+			console.log($(".navbar-fixed-top").outerHeight());
+
 			$("body").css({
 				'padding-top': $(".navbar").outerHeight() + 'px'
 			});
 
 			$('.sidebar').css({
-				'padding-top': $(".navbar-fixed-top").outerHeight() + 'px'
+				'padding-top': ($(".navbar").outerHeight() - 50) + 'px'
+			});
+		});
+	
+		$(document).ready(function(){
+			var storage_href = localStorage.getItem("is_active_button");
+
+			$("body").css({
+				'padding-top': $(".navbar").outerHeight() + 'px'
+			});
+
+			$('.sidebar').css({
+				'padding-top': ($(".navbar").outerHeight()-50) + 'px'
 			});
 
 			$('.nav.nav-sidebar li').each(function(i){
