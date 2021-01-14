@@ -137,6 +137,19 @@ class RecipeMaster(Base):
     time_created = Column(DateTime(timezone=False), server_default=func.now())
     time_updated = Column(DateTime(timezone=False), onupdate=func.now())
 
+    @property
+    def serialize(self):
+        """Return object data in easily serializeable format"""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'detail': self.detail,
+            'product_id': self.product_id,
+            'item_list_in_json': self.item_list_in_json,
+            'time_created' : self.time_created,
+            'time_updated' : self.time_updated
+        }
+
 class ProductStatusMaster(Base):
     __tablename__ = 'product_status_master'
     

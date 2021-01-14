@@ -14,7 +14,7 @@
 		<form class="form-signin" action="/addproduct" method="POST">
 			<h3 class="form-signin-heading" id="center">Select Product</h3>
 			<label for="inputProduct" class="sr-only">Select Product</label>
-			<select name="products" id="inputProduct">
+			<select name="products" id="inputProduct" onchange="updaterecipe()" required>
 			{% for product in products%}
 				<option value={{product.id}}>{{product.name}}</option>
 			{% endfor %}
@@ -22,7 +22,7 @@
 
 			<h3 class="form-signin-heading" id="center">Select User in charge</h3>
 			<label for="inputUser" class="sr-only">Select User in charge</label>
-			<select name="users" id="inputUser">
+			<select name="users" id="inputUser" required>
 			{% for user in users%}
 				<option value={{user.username}}>{{user.username}}</option>
 			{% endfor %}
@@ -30,19 +30,16 @@
 
 			<h3 class="form-signin-heading" id="center">Select Recipe to add product</h3>
 			<label for="inputRecipe" class="sr-only">Select Recipe to add product</label>
-			<select name="recipe" id="inputRecipe">
-			{% for recipe in recipes%}
-				<option value={{recipe.id}}>{{recipe.name}}</option>
-			{% endfor %}
+			<select name="recipe" id="inputRecipe" required>
 			</select>
 
 			<h3 class="form-signin-heading" id="center">Target Quantity</h3>
 			<label for="InputTargetQuantity" class="sr-only"></label>
-			<input type="number" id="InputTargetQuantity" name="targetquantity">
+			<input type="number" id="InputTargetQuantity" name="targetquantity" required validate>
 
 			<h3 class="form-signin-heading" id="center">Select Unit</h3>
 			<label for="inputUnit" class="sr-only">Select Unit</label>
-			<select name="unit" id="inputUnit">
+			<select name="unit" id="inputUnit" required>
 				<option value="kg">kg</option>
 				<option value="lb">lb</option>
 			</select>
@@ -57,7 +54,7 @@
 
 			<h3 class="form-signin-heading" id="center">Select Created Datetime</h3>
 			<label for="createddatetime"></label>
-			<input type="datetime-local" id="createddatetime" name="createddatetime">
+			<input type="datetime-local" id="createddatetime" name="createddatetime" required validate>
 			<br/>
 			<h3 class="form-signin-heading"></h3>
 			<button class="btn btn-primary btn-block" type="submit">Next</button>
@@ -66,4 +63,32 @@
 	</div>
 
 </div>
+<script>
+	window.onload = function(e){
+		var product_id = document.getElementById("inputProduct").value;
+
+		$.getJSON("/getrecipes/product/" + product_id, function(result) {
+			updaterecipe();
+		});
+	}
+</script>
+<script>
+		function updaterecipe() {
+			var product_id = document.getElementById("inputProduct").value;
+			var select = document.getElementById("inputRecipe");
+			var length = select.options.length;
+			for (i = length-1; i >= 0; i--) {
+				select.options[i] = null;
+			}
+
+			$.getJSON("/getrecipes/product/" + product_id, function(result) {
+				var recipes = result['recipes'];
+				for (i = 0; i < recipes.length; i++) {
+					var optionValue = recipes[i]['id'];
+					var optionText = recipes[i]['name'];
+					$('#inputRecipe').append(`<option value="${optionValue}">${optionText}</option>`); 
+				}
+			});
+		}
+</script>
 {% endblock %}

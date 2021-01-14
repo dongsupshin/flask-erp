@@ -66,7 +66,7 @@ def handle_exception(e):
         alert += ' ' + str(e)
     else:
         alert = str(e)
-
+    del session
     return render_template("500.html", alert=alert), 500
 
 @app.before_request
@@ -407,6 +407,14 @@ def recipes():
 
     recipes = alchemy_session.query(RecipeMaster).all()
     return render_template("recipes.html", data=data, alert=alert, recipes=recipes)
+
+@app.route('/getrecipes/product/<product_id>')
+def getrecipes(product_id):
+    if 'username' not in session:
+        return redirect('/')
+    
+    recipes = alchemy_session.query(RecipeMaster).filter_by(product_id=product_id).all()
+    return jsonify(recipes=[r.serialize for r in recipes])
 
 @app.route('/deleterecipe/<int:recipe_id>/', methods=['GET'])
 def deleterecipe(recipe_id):
@@ -824,9 +832,14 @@ def updateproductstatusupdate(productstatus_id, quantity):
         return redirect('/showproductstatus')
 
 def updateproductstatuscommit(productstatus_id, is_commit):
-    productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
-    productstock = alchemy_session.query(ProductStockMaster).filter_by(product_id=productstatus.product_id).one()
-    recipe = alchemy_session.query(RecipeMaster).filter_by(id=productstatus.recipe_id).one()
+    try:
+        productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
+        productstock = alchemy_session.query(ProductStockMaster).filter_by(product_id=productstatus.product_id).one()
+        recipe = alchemy_session.query(RecipeMaster).filter_by(id=productstatus.recipe_id).one()
+    except Exception as e:
+        logging.error(str(e))
+        session['alerts'] = str(e)
+        return abort(404, description=session['alerts'])
 
     if is_commit == 'True':
         if productstatus.status == 'Finished':
@@ -894,9 +907,14 @@ def updateproductstatuscommit(productstatus_id, is_commit):
         return abort(404, description=session['alerts'])
 
 def updateproductstatuscancelcommit(productstatus_id, is_cancel_commit):
-    productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
-    productstock = alchemy_session.query(ProductStockMaster).filter_by(product_id=productstatus.product_id).one()
-    recipe = alchemy_session.query(RecipeMaster).filter_by(id=productstatus.recipe_id).one()
+    try:
+        productstatus = alchemy_session.query(ProductStatusMaster).filter_by(id=productstatus_id).one()
+        productstock = alchemy_session.query(ProductStockMaster).filter_by(product_id=productstatus.product_id).one()
+        recipe = alchemy_session.query(RecipeMaster).filter_by(id=productstatus.recipe_id).one()
+    except Exception as e:
+        logging.error(str(e))
+        session['alerts'] = str(e)
+        return abort(404, description=session['alerts'])
 
     if is_cancel_commit == 'True':
         if productstatus.status in ('Idle', 'OnGoing'):
