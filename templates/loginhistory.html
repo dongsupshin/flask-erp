@@ -3,7 +3,7 @@
 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
 	<br />
 	<h1 class="page-header">Login History</h1>
-	<hr style="border-color: black;">
+	<hr style="border-color: black;" />
 	<div class="table-responsive">
 		<table class="table table-striped">
 			<thead>
@@ -18,16 +18,31 @@
 			<tbody>
 				{% for i in loginhistories%}
 				<tr>
-					<td>{{i.username}}</td>
+					<td>{{i[1]}}</td>
+					<td>{{i[2]}}</td>
+					<td>{{i[3]}}</td>
+					<td>{{i[4]}}</td>
+					<td>{{i[5]}}</td>
+					<!-- <td>{{i.username}}</td>
 					<td>{{i.request_url}}</td>
 					<td>{{i.remote_address}}</td>
 					<td>{{i.error_log}}</td>
-					<td>{{i.login_time}}</td>
+					<td>{{i.login_time}}</td> -->
 				</tr>
 				{% endfor %}
-
 			</tbody>
 		</table>
 	</div>
+
+	<nav aria-label="Page navigation example">
+		<ul class="pagination">
+			<li class="page-item"><a class="page-link" href="#">Previous</a></li>
+			<li class="page-item"><a class="page-link" href="#">1</a></li>
+			<li class="page-item"><a class="page-link" href="#">2</a></li>
+			<li class="page-item"><a class="page-link" href="#">3</a></li>
+			<li class="page-item"><a class="page-link" href="#">Next</a></li>
+		</ul>
+	</nav>
+
 </div>
 {% endblock %}

@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, session, abort, url_for, send_from_directory, jsonify
 from sqlalchemy import asc, desc, join
+from sqlalchemy_filters import apply_pagination
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.sqltypes import String
 from database_setup import Base, engine, User, Profile, FacilityMaster, ProductMaster, ProductStockMaster, ItemMaster, \
@@ -320,10 +321,11 @@ def users():
     if 'username' not in session:
         return redirect('/')
     data = alchemy_session.query(User).filter_by(username=session['username']).one()
+        
     if "admin" not in data.type:
         session['alerts'] = "you don't have access to this cause you're not an admin."
         return redirect('/')
-    users = alchemy_session.query(User).all()
+    users = alchemy_session.query(User).all()    
     return render_template("users.html", data=data, users=users)
 
 @app.route('/admin/users/<username>/update')
@@ -501,7 +503,11 @@ def loginhistory():
         alert = None
 
     loginhistories = alchemy_session.query(LoginHistory).order_by(desc(LoginHistory.login_time))
-    return render_template("loginhistory.html", data=data, alert=alert, loginhistories=loginhistories)
+
+    query, pagination = apply_pagination(loginhistories, page_number=1, page_size=10)
+    page_size, page_number, num_pages, total_results = pagination
+    loginhistories = alchemy_session.execute(query)
+    return render_template("loginhistory.html", data=data, alert=alert, loginhistories=loginhistories, page_size=page_size, page_number=page_number, num_pages=num_pages, total_results=total_results)
 
 @app.route('/activeloginsession')
 def activeloginsession():
