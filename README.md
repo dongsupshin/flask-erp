@@ -23,11 +23,4 @@ Flask.
 	* Can be edited
 	
 ## Python Packages Required
-* pip install flask-mysql
-* pip install cryptography
-* pip install mysqlclient
-* pip install sqlalchemy_utils
-* pip install flask_bootstrap
-* pip install lib
-* pip install pillow
-* pip install simplejson
+* pip install -r requirements.txt
