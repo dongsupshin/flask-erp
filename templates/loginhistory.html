@@ -23,11 +23,6 @@
 					<td>{{i[3]}}</td>
 					<td>{{i[4]}}</td>
 					<td>{{i[5]}}</td>
-					<!-- <td>{{i.username}}</td>
-					<td>{{i.request_url}}</td>
-					<td>{{i.remote_address}}</td>
-					<td>{{i.error_log}}</td>
-					<td>{{i.login_time}}</td> -->
 				</tr>
 				{% endfor %}
 			</tbody>
@@ -36,11 +31,9 @@
 
 	<nav aria-label="Page navigation example">
 		<ul class="pagination">
-			<li class="page-item"><a class="page-link" href="#">Previous</a></li>
-			<li class="page-item"><a class="page-link" href="#">1</a></li>
-			<li class="page-item"><a class="page-link" href="#">2</a></li>
-			<li class="page-item"><a class="page-link" href="#">3</a></li>
-			<li class="page-item"><a class="page-link" href="#">Next</a></li>
+			{% for page in num_pages%}
+			<li class="page-item"><a class="page-link" href="/loginhistory/{{page}}">{{page}}</a></li>
+			{% endfor %}
 		</ul>
 	</nav>
 

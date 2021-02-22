@@ -12,8 +12,15 @@ from lib.upload_file import uploadfile
 from common import GetFileName, GetLineNumber, ALLOWED_EXTENSIONS, IGNORED_FILES, allowed_file, gen_file_name, create_thumbnail
 import sys, os, PIL, simplejson, traceback, logging, datetime, json, datetime
 
-# filename = "flask_erp_log.log"
-# logging.basicConfig(filename=filename, level=logging.DEBUG)
+# filename, file_extension = os.path.splitext(os.path.basename(__file__))
+filename = './flask_erp_log.log'
+# logging.basicConfig(handlers=[logging.FileHandler(filename=filename, 
+#                                                  encoding='utf-8', mode='a+')],
+#                     format="%(asctime)s %(name)s:%(levelname)s:%(message)s", 
+#                     datefmt="%F %A %T", 
+#                     level=logging.INFO)
+
+logging.basicConfig(level=logging.INFO)
 
 app = Flask('__name__')
 app.config['SECRET_KEY'] = os.urandom(20)
@@ -34,7 +41,7 @@ def page_not_found(e):
 
     ######################################
     # [TBD]
-    if str(request.path).split('/')[1] in ('static', 'upload'):
+    if str(request.path).split('/')[1] in ('static', 'upload', 'loginhistory'):
         return e
     ######################################
 
@@ -488,8 +495,8 @@ def filelist():
 
     return render_template("filelist.html", data=data, alert=alert)
 
-@app.route('/loginhistory')
-def loginhistory():
+@app.route('/loginhistory/<int:page>')
+def loginhistory(page):
     if 'username' not in session:
         return redirect('/')
 
@@ -504,9 +511,10 @@ def loginhistory():
 
     loginhistories = alchemy_session.query(LoginHistory).order_by(desc(LoginHistory.login_time))
 
-    query, pagination = apply_pagination(loginhistories, page_number=1, page_size=10)
+    query, pagination = apply_pagination(loginhistories, page_number=page, page_size=10)    
     page_size, page_number, num_pages, total_results = pagination
     loginhistories = alchemy_session.execute(query)
+    num_pages = [page for page in range(1, num_pages+1)]
     return render_template("loginhistory.html", data=data, alert=alert, loginhistories=loginhistories, page_size=page_size, page_number=page_number, num_pages=num_pages, total_results=total_results)
 
 @app.route('/activeloginsession')
