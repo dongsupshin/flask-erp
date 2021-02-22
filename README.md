@@ -24,3 +24,8 @@ Flask.
 	
 ## Python Packages Required
 * pip install -r requirements.txt
+
+## Screen Shots
+<a href="https://github.com/dongsupshin/flask-erp/blob/master/docs/sceenshots/home.PNG" target="_blank"><img src="https://github.com/dongsupshin/flask-erp/blob/master/docs/sceenshots/home.PNG" alt="home" style="height: 60px !important;width: 217px !important;" ></a>
+
+<a href="https://github.com/dongsupshin/flask-erp/blob/master/docs/sceenshots/dashboard.PNG" target="_blank"><img src="https://github.com/dongsupshin/flask-erp/blob/master/docs/sceenshots/dashboard.PNG" alt="dashboard" style="height: 60px !important;width: 217px !important;" ></a>
